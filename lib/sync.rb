@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 require 'time'
+require_relative 'strava_stats/logging'
 
 module StravaStats
   class Sync
+    include Logging
     # Strava rate limits: 100 requests per 15 minutes, 1000 per day
     # At 2 sec delay, we can fetch ~100 activities in ~3.5 minutes before hitting limit
     RATE_LIMIT_DELAY = 2.0  # seconds between detailed requests
@@ -15,23 +17,23 @@ module StravaStats
     end
 
     def sync_activities(full: false)
-      puts "\n=== Syncing Activities ==="
+      logger.info "\n=== Syncing Activities ==="
 
       # Show current status
       current_count = @database.get_activity_count
       without_details = @database.get_activities_without_details_count
-      puts "Currently synced: #{current_count} activities"
-      puts "Missing details: #{without_details}" if without_details > 0
+      logger.info "Currently synced: #{current_count} activities"
+      logger.info "Missing details: #{without_details}" if without_details > 0
 
       last_sync = full ? nil : @database.get_last_sync_at
       sync_start_time = Time.now.to_i
 
       if last_sync
         last_sync_time = Time.at(last_sync)
-        puts "Last sync: #{last_sync_time.strftime('%Y-%m-%d %H:%M:%S')}"
-        puts "\nFetching new activities since then..."
+        logger.info "Last sync: #{last_sync_time.strftime('%Y-%m-%d %H:%M:%S')}"
+        logger.info "\nFetching new activities since then..."
       else
-        puts "\nFull sync - fetching all activities..."
+        logger.info "\nFull sync - fetching all activities..."
       end
 
       # Step 1: Fetch activity list (summaries)
@@ -43,22 +45,22 @@ module StravaStats
           print "\r  Fetched #{count} activity summaries..."
         end
       rescue StravaStats::RateLimitError => e
-        puts "\n\n⏳ Rate limit hit while fetching activity list! #{e.message}"
+        logger.warn "\n\nRate limit hit while fetching activity list! #{e.message}"
         trigger_progress_callback  # Generate HTML with current progress
-        puts "   Waiting 15 minutes before resuming... (#{Time.now.strftime('%H:%M:%S')})"
-        puts "   Progress is saved - you can also Ctrl+C and run 'sync' later to resume.\n"
+        logger.info "   Waiting 15 minutes before resuming... (#{Time.now.strftime('%H:%M:%S')})"
+        logger.info "   Progress is saved - you can also Ctrl+C and run 'sync' later to resume.\n"
         countdown_wait(e.wait_seconds)
         retry
       rescue StravaStats::DailyLimitError => e
-        puts "\n\n⛔ #{e.message}"
-        puts "   Progress saved. Run 'strava_stats sync' tomorrow to continue."
+        logger.error "\n\n#{e.message}"
+        logger.info "   Progress saved. Run 'strava_stats sync' tomorrow to continue."
         trigger_progress_callback  # Generate HTML with current progress
       end
 
       if count > 0
-        puts "\n✓ Fetched #{count} new activity summaries"
+        logger.info "\nFetched #{count} new activity summaries"
       else
-        puts "\n✓ No new activities to sync"
+        logger.info "\nNo new activities to sync"
       end
 
       # Update last sync timestamp
@@ -69,9 +71,9 @@ module StravaStats
 
       total = @database.get_activity_count
       remaining_details = @database.get_activities_without_details_count
-      puts "\n=== Sync Complete ==="
-      puts "Total activities: #{total}"
-      puts "Still need details: #{remaining_details}" if remaining_details > 0
+      logger.info "\n=== Sync Complete ==="
+      logger.info "Total activities: #{total}"
+      logger.info "Still need details: #{remaining_details}" if remaining_details > 0
 
       # Generate final HTML
       trigger_progress_callback
@@ -80,8 +82,8 @@ module StravaStats
     end
 
     def refresh_activities(activity_ids)
-      puts "\n=== Refreshing Activities ==="
-      puts "Refreshing #{activity_ids.count} activity(ies)...\n"
+      logger.info "\n=== Refreshing Activities ==="
+      logger.info "Refreshing #{activity_ids.count} activity(ies)...\n"
 
       refreshed = 0
       activity_ids.each_with_index do |activity_id, index|
@@ -90,20 +92,20 @@ module StravaStats
         begin
           detailed = @api.get_activity(activity_id)
           @database.upsert_activity(detailed, details_fetched: true)
-          puts " #{detailed['name']} (#{detailed['sport_type']})"
+          logger.info " #{detailed['name']} (#{detailed['sport_type']})"
           refreshed += 1
         rescue StravaStats::RateLimitError => e
-          puts "\n\n⏳ Rate limit hit! #{e.message}"
+          logger.warn "\n\nRate limit hit! #{e.message}"
           countdown_wait(e.wait_seconds)
           retry
         rescue StandardError => e
-          puts " Error: #{e.message}"
+          logger.error " Error: #{e.message}"
         end
 
         sleep(RATE_LIMIT_DELAY) if index < activity_ids.count - 1
       end
 
-      puts "\n✓ Refreshed #{refreshed} activity(ies)"
+      logger.info "\nRefreshed #{refreshed} activity(ies)"
 
       # Regenerate HTML
       trigger_progress_callback
@@ -115,9 +117,9 @@ module StravaStats
       activities = @database.get_activities_without_details
       return if activities.empty?
 
-      puts "\n=== Fetching Activity Details (for calories, etc.) ==="
-      puts "#{activities.count} activities need details..."
-      puts "This may take a while due to API rate limits.\n"
+      logger.info "\n=== Fetching Activity Details (for calories, etc.) ==="
+      logger.info "#{activities.count} activities need details..."
+      logger.info "This may take a while due to API rate limits.\n"
 
       fetched = 0
       activities.each_with_index do |activity, index|
@@ -132,27 +134,27 @@ module StravaStats
           @database.upsert_activity(detailed, details_fetched: true)
           fetched += 1
         rescue StravaStats::RateLimitError => e
-          puts "\n\n⏳ Rate limit hit! #{e.message}"
+          logger.warn "\n\nRate limit hit! #{e.message}"
           trigger_progress_callback  # Generate HTML with current progress
-          puts "   Waiting 15 minutes before resuming... (#{Time.now.strftime('%H:%M:%S')})"
-          puts "   Progress is saved - you can also Ctrl+C and run 'sync' later to resume.\n"
+          logger.info "   Waiting 15 minutes before resuming... (#{Time.now.strftime('%H:%M:%S')})"
+          logger.info "   Progress is saved - you can also Ctrl+C and run 'sync' later to resume.\n"
           countdown_wait(e.wait_seconds)
           retry
         rescue StravaStats::DailyLimitError => e
-          puts "\n\n⛔ #{e.message}"
-          puts "   Progress saved. Run 'strava_stats sync' tomorrow to continue."
-          puts "   Fetched #{fetched} activities before hitting limit."
+          logger.error "\n\n#{e.message}"
+          logger.info "   Progress saved. Run 'strava_stats sync' tomorrow to continue."
+          logger.info "   Fetched #{fetched} activities before hitting limit."
           trigger_progress_callback  # Generate HTML with current progress
           return fetched
         rescue StandardError => e
-          puts "\n    Warning: Failed to fetch details for #{activity_id}: #{e.message}"
+          logger.warn "\n    Failed to fetch details for #{activity_id}: #{e.message}"
         end
 
         # Rate limiting - be conservative to avoid hitting limits
         sleep(RATE_LIMIT_DELAY) if index < activities.count - 1
       end
 
-      puts "\n✓ Fetched details for #{fetched} activities"
+      logger.info "\nFetched details for #{fetched} activities"
       fetched
     end
 
@@ -177,7 +179,7 @@ module StravaStats
 
       @on_progress.call
     rescue StandardError => e
-      puts "   Warning: Failed to generate HTML: #{e.message}"
+      logger.warn "   Failed to generate HTML: #{e.message}"
     end
 
     def countdown_wait(seconds)
@@ -188,7 +190,7 @@ module StravaStats
         print "\r   Resuming in #{mins}:#{secs.to_s.rjust(2, '0')}...  "
         sleep(1)
       end
-      puts "\r   Resuming now!                    "
+      logger.info "\r   Resuming now!                    "
     end
   end
 end

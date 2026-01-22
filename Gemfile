@@ -29,3 +29,7 @@ gem 'erb', '~> 4.0'
 group :development do
   gem 'rubocop', '~> 1.50'
 end
+
+group :test do
+  gem 'rspec', '~> 3.12'
+end

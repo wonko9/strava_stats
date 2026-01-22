@@ -3,46 +3,22 @@
 require 'erb'
 require 'json'
 require 'fileutils'
+require_relative 'strava_stats/logging'
+require_relative 'strava_stats/html/formatters'
+require_relative 'strava_stats/html/chart_data_builder'
 
 module StravaStats
   class HTMLGenerator
-    SPORT_COLORS = {
-      'Run' => '#FC4C02',
-      'Ride' => '#2D73F5',
-      'Swim' => '#00D4FF',
-      'Walk' => '#7CB342',
-      'Hike' => '#8D6E63',
-      'Snowboard' => '#9C27B0',
-      'AlpineSki' => '#E91E63',
-      'BackcountrySki' => '#FF5722',
-      'NordicSki' => '#00BCD4',
-      'Snowshoe' => '#607D8B',
-      'Workout' => '#FF9800',
-      'WeightTraining' => '#795548',
-      'Yoga' => '#4CAF50',
-      'VirtualRide' => '#3F51B5',
-      'VirtualRun' => '#F44336',
-      'EBikeRide' => '#009688',
-      'MountainBikeRide' => '#673AB7',
-      'GravelRide' => '#CDDC39',
-      'Kayaking' => '#03A9F4',
-      'Rowing' => '#8BC34A',
-      'StandUpPaddling' => '#00ACC1',
-      'Surfing' => '#26C6DA',
-      'Windsurf' => '#4DD0E1',
-      'Kitesurf' => '#80DEEA',
-      'Golf' => '#AED581',
-      'RockClimbing' => '#FF7043',
-      'IceSkate' => '#B3E5FC',
-      'Crossfit' => '#FFAB00',
-      'Elliptical' => '#FFD54F',
-      'StairStepper' => '#FFC107'
-    }.freeze
+    include Logging
+    include HTML::Formatters
 
-    DEFAULT_COLOR = '#9E9E9E'
+    # Re-export constants for backward compatibility
+    SPORT_COLORS = HTML::Formatters::SPORT_COLORS
+    DEFAULT_COLOR = HTML::Formatters::DEFAULT_COLOR
 
     def initialize(output_path:)
       @output_path = output_path
+      @chart_builder = HTML::ChartDataBuilder.new
     end
 
     def generate(stats:, athlete_name: nil)
@@ -51,19 +27,24 @@ module StravaStats
       FileUtils.mkdir_p(File.dirname(@output_path))
       File.write(@output_path, html)
 
-      puts "✓ Generated stats page: #{@output_path}"
+      logger.info "Generated stats page: #{@output_path}"
       @output_path
     end
 
     private
 
     def build_html(stats, athlete_name)
-      # Prepare chart data
-      by_year_chart = prepare_by_year_chart(stats[:by_year])
-      by_sport_chart = prepare_by_sport_chart(stats[:by_sport])
-      sport_by_year_charts = prepare_sport_by_year_charts(stats[:by_sport_and_year])
-      winter_season_chart = prepare_winter_season_chart(stats[:winter_by_season])
+      # Use extracted chart builder for data preparation
+      by_year_chart = @chart_builder.prepare_by_year_chart(stats[:by_year])
+      by_sport_chart = @chart_builder.prepare_by_sport_chart(stats[:by_sport])
+      sport_by_year_charts = @chart_builder.prepare_sport_by_year_charts(stats[:by_sport_and_year])
+      winter_season_chart = @chart_builder.prepare_winter_season_chart(stats[:winter_by_season])
 
+      # Build HTML (keeping existing template structure)
+      build_html_content(stats, athlete_name, by_year_chart, by_sport_chart, sport_by_year_charts, winter_season_chart)
+    end
+
+    def build_html_content(stats, athlete_name, by_year_chart, by_sport_chart, sport_by_year_charts, winter_season_chart)
       <<~HTML
         <!DOCTYPE html>
         <html lang="en">

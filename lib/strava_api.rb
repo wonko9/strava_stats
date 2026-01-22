@@ -4,6 +4,7 @@ require 'faraday'
 require 'json'
 require 'webrick'
 require 'uri'
+require_relative 'strava_stats/logging'
 
 module StravaStats
   class RateLimitError < StandardError
@@ -18,6 +19,8 @@ module StravaStats
   class DailyLimitError < StandardError; end
 
   class StravaAPI
+    include Logging
+
     AUTHORIZE_URL = 'https://www.strava.com/oauth/authorize'
     TOKEN_URL = 'https://www.strava.com/oauth/token'
     API_BASE_URL = 'https://www.strava.com/api/v3'
@@ -39,13 +42,13 @@ module StravaStats
     end
 
     def authorize!
-      puts "\n=== Strava Authorization Required ==="
-      puts "A browser window will open for you to authorize this application."
-      puts "If it doesn't open automatically, visit this URL:\n\n"
+      logger.info "\n=== Strava Authorization Required ==="
+      logger.info "A browser window will open for you to authorize this application."
+      logger.info "If it doesn't open automatically, visit this URL:\n"
 
       auth_url = build_authorize_url
-      puts auth_url
-      puts "\n"
+      logger.info auth_url
+      logger.info ""
 
       # Try to open browser
       system("open '#{auth_url}'") || system("xdg-open '#{auth_url}'")
@@ -56,7 +59,7 @@ module StravaStats
 
       # Exchange code for tokens
       exchange_code_for_tokens(code)
-      puts "\n✓ Successfully authorized with Strava!"
+      logger.info "\nSuccessfully authorized with Strava!"
     end
 
     def get_athlete
@@ -110,7 +113,7 @@ module StravaStats
       per_page = 100
 
       loop do
-        puts "  Fetching page #{page}..." if page > 1 || after
+        logger.debug "  Fetching page #{page}..." if page > 1 || after
         activities = get_activities(page: page, per_page: per_page, after: after)
 
         break if activities.empty?
@@ -190,7 +193,7 @@ module StravaStats
         Thread.new { sleep 1; server.shutdown }
       end
 
-      puts "Waiting for authorization callback on port #{@callback_port}..."
+      logger.info "Waiting for authorization callback on port #{@callback_port}..."
       server.start
 
       code

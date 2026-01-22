@@ -14,16 +14,21 @@ require 'sync'
 require 'location_matcher'
 require 'stats_calculator'
 require 'html_generator'
+require 'strava_stats/logging'
+require 'strava_stats/component_factory'
+require 'strava_stats/application'
 
 module StravaStats
   class CLI < Thor
+    include Logging
+
     class_option :config, type: :string, default: 'config.yml', desc: 'Path to config file'
 
     desc 'auth', 'Authorize with Strava (required on first run)'
     def auth
       setup_components
       @api.authorize!
-      puts "\nYou can now run 'strava_stats sync' to download your activities."
+      logger.info "\nYou can now run 'strava_stats sync' to download your activities."
     end
 
     desc 'sync', 'Sync activities from Strava'
@@ -61,10 +66,10 @@ module StravaStats
     LONGDESC
     def refresh(*activity_ids)
       if activity_ids.empty?
-        puts "Usage: strava_stats refresh ACTIVITY_ID [ACTIVITY_ID ...]"
-        puts "\nExample: strava_stats refresh 4915043957"
-        puts "\nYou can find activity IDs in Strava URLs:"
-        puts "  https://www.strava.com/activities/4915043957"
+        logger.info "Usage: strava_stats refresh ACTIVITY_ID [ACTIVITY_ID ...]"
+        logger.info "\nExample: strava_stats refresh 4915043957"
+        logger.info "\nYou can find activity IDs in Strava URLs:"
+        logger.info "  https://www.strava.com/activities/4915043957"
         exit 1
       end
 
@@ -82,31 +87,12 @@ module StravaStats
     def generate
       setup_components
 
-      count = @database.get_activity_count
-      if count.zero?
-        puts 'No activities in database. Run "strava_stats sync" first.'
+      output_path = @app.generate_html(verbose: true)
+      if output_path
+        logger.info "\nOpen in browser: file://#{File.expand_path(output_path)}"
+      else
         exit 1
       end
-
-      puts "\n=== Generating Stats ==="
-      puts "Processing #{count} activities..."
-
-      # Ensure resorts and peaks are matched
-      @location_matcher.seed_resorts_if_empty
-      @location_matcher.seed_peaks_if_empty
-      @location_matcher.match_all_activities
-
-      # Calculate stats
-      stats = @stats_calculator.calculate_all_stats
-
-      # Get athlete name from stored token data
-      tokens = @database.get_tokens
-      athlete_name = tokens&.dig(:athlete, 'firstname')
-
-      # Generate HTML
-      @html_generator.generate(stats: stats, athlete_name: athlete_name)
-
-      puts "\nOpen in browser: file://#{File.expand_path(@config.dig('output', 'path') || 'output/index.html')}"
     end
 
     desc 'status', 'Show sync status'
@@ -114,17 +100,17 @@ module StravaStats
       setup_components
 
       status = @syncer.sync_status
-      puts "\n=== Sync Status ==="
-      puts "Last sync: #{status[:last_sync] ? status[:last_sync].strftime('%Y-%m-%d %H:%M:%S') : 'Never'}"
-      puts "Total activities: #{status[:total_activities]}"
-      puts "Activities missing details: #{status[:without_details]}" if status[:without_details].to_i > 0
-      puts "Newest activity: #{status[:newest_activity] ? status[:newest_activity].strftime('%Y-%m-%d') : 'N/A'}"
+      logger.info "\n=== Sync Status ==="
+      logger.info "Last sync: #{status[:last_sync] ? status[:last_sync].strftime('%Y-%m-%d %H:%M:%S') : 'Never'}"
+      logger.info "Total activities: #{status[:total_activities]}"
+      logger.info "Activities missing details: #{status[:without_details]}" if status[:without_details].to_i > 0
+      logger.info "Newest activity: #{status[:newest_activity] ? status[:newest_activity].strftime('%Y-%m-%d') : 'N/A'}"
 
       tokens = @database.get_tokens
       if tokens
-        puts "\nAuthenticated as: #{tokens.dig(:athlete, 'firstname')} #{tokens.dig(:athlete, 'lastname')}"
+        logger.info "\nAuthenticated as: #{tokens.dig(:athlete, 'firstname')} #{tokens.dig(:athlete, 'lastname')}"
       else
-        puts "\nNot authenticated. Run 'strava_stats auth' first."
+        logger.info "\nNot authenticated. Run 'strava_stats auth' first."
       end
     end
 
@@ -139,14 +125,14 @@ module StravaStats
       end
 
       resorts = @database.get_all_resorts
-      puts "\n=== Resorts Database (#{resorts.count} resorts) ==="
+      logger.info "\n=== Resorts Database (#{resorts.count} resorts) ==="
 
       by_country = resorts.group_by { |r| r['country'] }
       by_country.sort.each do |country, country_resorts|
-        puts "\n#{country}:"
+        logger.info "\n#{country}:"
         country_resorts.sort_by { |r| r['name'] }.each do |r|
           type = r['resort_type'] == 'backcountry' ? ' [backcountry]' : ''
-          puts "  #{r['name']} (#{r['region']})#{type}"
+          logger.info "  #{r['name']} (#{r['region']})#{type}"
         end
       end
     end
@@ -162,14 +148,14 @@ module StravaStats
       end
 
       peaks = @database.get_all_peaks
-      puts "\n=== Peaks Database (#{peaks.count} peaks) ==="
+      logger.info "\n=== Peaks Database (#{peaks.count} peaks) ==="
 
       by_country = peaks.group_by { |p| p['country'] }
       by_country.sort.each do |country, country_peaks|
-        puts "\n#{country}:"
+        logger.info "\n#{country}:"
         country_peaks.sort_by { |p| p['name'] }.each do |p|
           elevation = p['elevation_m'] ? " (#{p['elevation_m']}m)" : ''
-          puts "  #{p['name']}#{elevation} - #{p['region']}"
+          logger.info "  #{p['name']}#{elevation} - #{p['region']}"
         end
       end
     end
@@ -188,7 +174,7 @@ module StravaStats
     LONGDESC
     def ignore(*activity_ids)
       if activity_ids.empty?
-        puts "Usage: strava_stats ignore ACTIVITY_ID [ACTIVITY_ID ...]"
+        logger.info "Usage: strava_stats ignore ACTIVITY_ID [ACTIVITY_ID ...]"
         exit 1
       end
 
@@ -198,19 +184,19 @@ module StravaStats
         activity = @database.get_activity(id.to_i)
         if activity
           @database.ignore_activity(id.to_i)
-          puts "✓ Ignored: #{activity['name']} (#{activity['sport_type']}, #{activity['start_date_local']&.split('T')&.first})"
+          logger.info "Ignored: #{activity['name']} (#{activity['sport_type']}, #{activity['start_date_local']&.split('T')&.first})"
         else
-          puts "✗ Activity not found: #{id}"
+          logger.warn "Activity not found: #{id}"
         end
       end
 
-      puts "\nRun 'strava_stats generate' to update the HTML with the changes."
+      logger.info "\nRun 'strava_stats generate' to update the HTML with the changes."
     end
 
     desc 'unignore ACTIVITY_IDS', 'Restore ignored activities to stats'
     def unignore(*activity_ids)
       if activity_ids.empty?
-        puts "Usage: strava_stats unignore ACTIVITY_ID [ACTIVITY_ID ...]"
+        logger.info "Usage: strava_stats unignore ACTIVITY_ID [ACTIVITY_ID ...]"
         exit 1
       end
 
@@ -220,13 +206,13 @@ module StravaStats
         activity = @database.get_activity(id.to_i)
         if activity
           @database.unignore_activity(id.to_i)
-          puts "✓ Restored: #{activity['name']} (#{activity['sport_type']})"
+          logger.info "Restored: #{activity['name']} (#{activity['sport_type']})"
         else
-          puts "✗ Activity not found: #{id}"
+          logger.warn "Activity not found: #{id}"
         end
       end
 
-      puts "\nRun 'strava_stats generate' to update the HTML with the changes."
+      logger.info "\nRun 'strava_stats generate' to update the HTML with the changes."
     end
 
     desc 'ignored', 'List all ignored activities'
@@ -235,17 +221,17 @@ module StravaStats
 
       activities = @database.get_ignored_activities
       if activities.empty?
-        puts "No ignored activities."
+        logger.info "No ignored activities."
         return
       end
 
-      puts "\n=== Ignored Activities (#{activities.count}) ==="
+      logger.info "\n=== Ignored Activities (#{activities.count}) ==="
       activities.each do |a|
         date = a['start_date_local']&.split('T')&.first || 'unknown'
-        puts "  #{a['id']}: #{a['name']} (#{a['sport_type']}, #{date})"
+        logger.info "  #{a['id']}: #{a['name']} (#{a['sport_type']}, #{date})"
       end
 
-      puts "\nUse 'strava_stats unignore ID' to restore an activity."
+      logger.info "\nUse 'strava_stats unignore ID' to restore an activity."
     end
 
     desc 'export', 'Export activities to CSV file'
@@ -300,7 +286,7 @@ module StravaStats
         end
       end
 
-      puts "✓ Exported #{activities.count} activities to #{output_file}"
+      logger.info "Exported #{activities.count} activities to #{output_file}"
     end
 
     desc 'run', 'Sync and generate stats (default command)'
@@ -319,57 +305,29 @@ module StravaStats
     def setup_components
       load_config
 
-      db_path = @config.dig('database', 'path') || 'data/strava_stats.db'
-      FileUtils.mkdir_p(File.dirname(db_path))
+      # Use ComponentFactory to create all components
+      @factory = ComponentFactory.new(@config)
+      @app = Application.new(@factory)
 
-      @database = Database.new(db_path)
-
-      @api = StravaAPI.new(
-        client_id: @config.dig('strava', 'client_id'),
-        client_secret: @config.dig('strava', 'client_secret'),
-        database: @database,
-        callback_port: @config.dig('oauth', 'callback_port') || 8888
-      )
-
-      @location_matcher = LocationMatcher.new(database: @database)
-      @stats_calculator = StatsCalculator.new(database: @database)
-
-      output_path = @config.dig('output', 'path') || 'output/index.html'
-      @html_generator = HTMLGenerator.new(output_path: output_path)
+      # Expose components for direct access where needed
+      @database = @factory.database
+      @api = @factory.api
+      @location_matcher = @factory.location_matcher
+      @stats_calculator = @factory.stats_calculator
+      @html_generator = @factory.html_generator
 
       # Create syncer with progress callback to regenerate HTML
-      @syncer = Sync.new(
-        api: @api,
-        database: @database,
-        on_progress: -> { generate_html_quietly }
-      )
-    end
-
-    def generate_html_quietly
-      return if @database.get_activity_count.zero?
-
-      # Match resorts and peaks before generating
-      @location_matcher.seed_resorts_if_empty
-      @location_matcher.seed_peaks_if_empty
-      @location_matcher.match_all_activities
-
-      # Calculate stats and generate
-      stats = @stats_calculator.calculate_all_stats
-      tokens = @database.get_tokens
-      athlete_name = tokens&.dig(:athlete, 'firstname')
-      @html_generator.generate(stats: stats, athlete_name: athlete_name)
-    rescue StandardError => e
-      puts "   Warning: Failed to generate HTML: #{e.message}"
+      @syncer = @app.syncer_with_progress
     end
 
     def load_config
       config_path = options[:config]
 
       unless File.exist?(config_path)
-        puts "Config file not found: #{config_path}"
-        puts "\nCreate a config.yml file with your Strava API credentials:"
-        puts "  cp config.yml.example config.yml"
-        puts "  # Edit config.yml with your credentials from https://www.strava.com/settings/api"
+        logger.error "Config file not found: #{config_path}"
+        logger.info "\nCreate a config.yml file with your Strava API credentials:"
+        logger.info "  cp config.yml.example config.yml"
+        logger.info "  # Edit config.yml with your credentials from https://www.strava.com/settings/api"
         exit 1
       end
 
@@ -381,16 +339,16 @@ module StravaStats
 
       return if missing.empty?
 
-      puts "Missing required config values: #{missing.join(', ')}"
-      puts "Edit #{config_path} and add your Strava API credentials."
+      logger.error "Missing required config values: #{missing.join(', ')}"
+      logger.info "Edit #{config_path} and add your Strava API credentials."
       exit 1
     end
 
     def ensure_authenticated!
       return if @api.authenticated?
 
-      puts 'Not authenticated with Strava.'
-      puts "Run 'strava_stats auth' first to authorize."
+      logger.warn 'Not authenticated with Strava.'
+      logger.info "Run 'strava_stats auth' first to authorize."
       exit 1
     end
 
@@ -398,8 +356,8 @@ module StravaStats
       parts = resort_string.split(',').map(&:strip)
 
       if parts.length < 5
-        puts 'Invalid format. Use: "Name,Country,Region,Latitude,Longitude[,RadiusKm][,Type]"'
-        puts 'Example: "My Resort,USA,Colorado,39.5,-106.0,5.0,resort"'
+        logger.error 'Invalid format. Use: "Name,Country,Region,Latitude,Longitude[,RadiusKm][,Type]"'
+        logger.info 'Example: "My Resort,USA,Colorado,39.5,-106.0,5.0,resort"'
         exit 1
       end
 
@@ -414,7 +372,7 @@ module StravaStats
       }
 
       @database.insert_resort(resort)
-      puts "✓ Added resort: #{resort[:name]}"
+      logger.info "Added resort: #{resort[:name]}"
 
       # Re-match activities
       @location_matcher.match_all_activities
@@ -424,8 +382,8 @@ module StravaStats
       parts = peak_string.split(',').map(&:strip)
 
       if parts.length < 5
-        puts 'Invalid format. Use: "Name,Country,Region,Latitude,Longitude[,ElevationM][,RadiusKm]"'
-        puts 'Example: "Mount Example,USA,Colorado,39.5,-106.0,4000,2.0"'
+        logger.error 'Invalid format. Use: "Name,Country,Region,Latitude,Longitude[,ElevationM][,RadiusKm]"'
+        logger.info 'Example: "Mount Example,USA,Colorado,39.5,-106.0,4000,2.0"'
         exit 1
       end
 
@@ -440,7 +398,7 @@ module StravaStats
       }
 
       @database.insert_peak(peak)
-      puts "✓ Added peak: #{peak[:name]}"
+      logger.info "Added peak: #{peak[:name]}"
 
       # Re-match activities
       @location_matcher.match_all_activities

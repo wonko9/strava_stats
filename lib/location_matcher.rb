@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 require 'yaml'
+require_relative 'strava_stats/logging'
 
 module StravaStats
   class LocationMatcher
+    include Logging
     # Earth's radius in km
     EARTH_RADIUS_KM = 6371.0
 
@@ -37,21 +39,21 @@ module StravaStats
     def seed_resorts_if_empty
       return if @database.get_resort_count.positive?
 
-      puts "Seeding resort database..."
+      logger.info "Seeding resort database..."
       seed_resorts
-      puts "✓ Seeded #{@database.get_resort_count} resorts"
+      logger.info "Seeded #{@database.get_resort_count} resorts"
     end
 
     def seed_peaks_if_empty
       return if @database.get_peak_count.positive?
 
-      puts "Seeding peaks database..."
+      logger.info "Seeding peaks database..."
       seed_peaks
-      puts "✓ Seeded #{@database.get_peak_count} peaks"
+      logger.info "Seeded #{@database.get_peak_count} peaks"
     end
 
     def match_all_activities
-      puts "\n=== Matching Activities to Resorts ==="
+      logger.info "\n=== Matching Activities to Resorts ==="
 
       # Clear existing matches
       @database.clear_activity_resorts
@@ -85,7 +87,7 @@ module StravaStats
         end
       end
 
-      puts "✓ Matched #{matched}/#{winter_count} winter activities to resorts"
+      logger.info "Matched #{matched}/#{winter_count} winter activities to resorts"
 
       # Also match backcountry activities to peaks
       match_backcountry_to_peaks
@@ -127,7 +129,7 @@ module StravaStats
         end
       end
 
-      puts "✓ Matched #{matched}/#{backcountry_count} backcountry activities to peaks" if backcountry_count > 0
+      logger.info "Matched #{matched}/#{backcountry_count} backcountry activities to peaks" if backcountry_count > 0
       matched
     end
 
