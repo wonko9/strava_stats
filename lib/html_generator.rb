@@ -900,34 +900,15 @@ module StravaStats
             <!-- Stats by Year -->
             <div class="section">
               <h2>Stats by Year</h2>
-              <table class="sortable">
-                <thead>
-                  <tr>
-                    <th>Year</th>
-                    <th class="number">Activities</th>
-                    <th class="number">Days</th>
-                    <th class="number">Hours</th>
-                    <th class="number">Miles</th>
-                    <th class="number">Vertical (ft)</th>
-                    <th class="number">Calories</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  #{stats[:by_year].map { |year, s| year_row(year, s) }.join("\n")}
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Sport by Year Detail -->
-            <div class="section">
-              <h2>Stats by Sport and Year</h2>
               <div class="sport-selector" style="margin-bottom: 1rem;">
                 <label>Sport:</label>
                 <select id="sportYearSelect" onchange="showSportTab(this.value)">
+                  <option value="All">All</option>
                   #{stats[:by_sport_and_year].sort_by { |_, years| -years.values.sum { |s| s[:total_activities] } }.map { |sport, _| "<option value=\"#{sport}\">#{format_sport_name(sport)}</option>" }.join("\n")}
                 </select>
               </div>
-              #{stats[:by_sport_and_year].sort_by { |_, years| -years.values.sum { |s| s[:total_activities] } }.map.with_index { |(sport, years), i| sport_year_tab(sport, years, i == 0) }.join("\n")}
+              #{all_years_tab(stats[:by_year])}
+              #{stats[:by_sport_and_year].sort_by { |_, years| -years.values.sum { |s| s[:total_activities] } }.map { |sport, years| sport_year_tab(sport, years, false) }.join("\n")}
             </div>
 
             <!-- Year-over-Year Comparison -->
@@ -1721,6 +1702,29 @@ module StravaStats
           <td class="number" data-sort="#{stats[:total_elevation_feet]}">#{format_number(stats[:total_elevation_feet])}</td>
           <td class="number" data-sort="#{stats[:total_calories]}">#{format_number(stats[:total_calories])}</td>
         </tr>
+      HTML
+    end
+
+    def all_years_tab(by_year)
+      <<~HTML
+        <div id="sport-All" class="tab-content sport-tab-content active">
+          <table class="sortable">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th class="number">Activities</th>
+                <th class="number">Days</th>
+                <th class="number">Hours</th>
+                <th class="number">Miles</th>
+                <th class="number">Vertical (ft)</th>
+                <th class="number">Calories</th>
+              </tr>
+            </thead>
+            <tbody>
+              #{by_year.map { |year, s| year_row(year, s) }.join("\n")}
+            </tbody>
+          </table>
+        </div>
       HTML
     end
 
