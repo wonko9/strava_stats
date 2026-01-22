@@ -156,6 +156,20 @@ module StravaStats
       fetched
     end
 
+    def sync_status
+      last_sync = @database.get_last_sync_at
+      total = @database.get_activity_count
+      newest = @database.get_newest_activity_date
+      without_details = @database.get_activities_without_details_count
+
+      {
+        last_sync: last_sync ? Time.at(last_sync) : nil,
+        total_activities: total,
+        newest_activity: newest ? Time.parse(newest) : nil,
+        without_details: without_details
+      }
+    end
+
     private
 
     def trigger_progress_callback
@@ -175,20 +189,6 @@ module StravaStats
         sleep(1)
       end
       puts "\r   Resuming now!                    "
-    end
-
-    def sync_status
-      last_sync = @database.get_last_sync_at
-      total = @database.get_activity_count
-      newest = @database.get_newest_activity_date
-      without_details = @database.get_activities_without_details_count
-
-      {
-        last_sync: last_sync ? Time.at(last_sync) : nil,
-        total_activities: total,
-        newest_activity: newest ? Time.parse(newest) : nil,
-        without_details: without_details
-      }
     end
   end
 end
