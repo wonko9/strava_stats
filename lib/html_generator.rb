@@ -114,13 +114,14 @@ module StravaStats
       sports = year_comparisons.keys.sort
       sport_options = sports.map { |s| "<option value=\"#{s}\">#{format_sport_name(s)}</option>" }.join
 
-      # Strip activities from comparison data - they're accessed via activityIds instead
+      # Strip activities from comparison data and use script tag to avoid quote issues
       stripped_comparisons = strip_activities_from_comparisons(year_comparisons)
 
       <<~HTML
         <div class="section">
           <h2>Year-over-Year Comparison</h2>
-          <div id="year-comparison-container" data-comparisons='#{stripped_comparisons.to_json}'>
+          <script type="application/json" id="year-comparison-data">#{stripped_comparisons.to_json}</script>
+          <div id="year-comparison-container">
             <div class="comparison-selectors">
               <div><label>Sport:</label><select id="yearComparisonSport" onchange="onYearSportChange()">#{sport_options}</select></div>
               <div class="year-selectors">
@@ -142,13 +143,14 @@ module StravaStats
       sports = season_comparisons.keys.sort
       sport_options = sports.map { |s| "<option value=\"#{s}\">#{format_sport_name(s)}</option>" }.join
 
-      # Strip activities from comparison data - they're accessed via activityIds instead
+      # Strip activities from comparison data and use script tag to avoid quote issues
       stripped_comparisons = strip_activities_from_comparisons(season_comparisons)
 
       <<~HTML
         <div class="section">
           <h2>Season-over-Season Comparison</h2>
-          <div id="season-comparison-container" data-comparisons='#{stripped_comparisons.to_json}'>
+          <script type="application/json" id="season-comparison-data">#{stripped_comparisons.to_json}</script>
+          <div id="season-comparison-container">
             <div class="comparison-selectors">
               <div><label>Sport:</label><select id="seasonComparisonSport" onchange="onSeasonSportChange()">#{sport_options}</select></div>
               <div class="year-selectors">

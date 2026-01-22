@@ -185,13 +185,23 @@ module StravaStats
         return '' if chart_data[:labels].empty?
 
         <<~JS
+          const winterChartData = #{chart_data.to_json};
           new Chart(document.getElementById('winterSeasonChart').getContext('2d'), {
             type: 'bar',
-            data: #{chart_data.to_json},
+            data: winterChartData,
             options: {
               responsive: true,
               plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw.toLocaleString() + ' activities' } } },
-              scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, grid: { color: '#e5e5e5' } } }
+              scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, grid: { color: '#e5e5e5' } } },
+              onClick: (evt, elements) => {
+                if (elements.length > 0) {
+                  const season = winterChartData.labels[elements[0].index];
+                  const sport = winterChartData.datasets[elements[0].datasetIndex].label.replace(/ /g, '');
+                  const ids = activityIds.winterBySeason[season] && activityIds.winterBySeason[season].by_sport[sport] || [];
+                  showActivityModal(winterChartData.datasets[elements[0].datasetIndex].label + ' - ' + season, getActivitiesFromIds(ids));
+                }
+              },
+              onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default'; }
             }
           });
         JS
@@ -219,9 +229,9 @@ module StravaStats
           let yearComparisonChart = null;
 
           function initYearComparison() {
-            const container = document.getElementById('year-comparison-container');
-            if (!container) return;
-            yearComparisonData = JSON.parse(container.dataset.comparisons || '{}');
+            const dataEl = document.getElementById('year-comparison-data');
+            if (!dataEl) return;
+            yearComparisonData = JSON.parse(dataEl.textContent || '{}');
             if (Object.keys(yearComparisonData).length === 0) return;
             populateYearSelectors(document.getElementById('yearComparisonSport').value);
             updateYearComparisonDisplay();
@@ -276,6 +286,14 @@ module StravaStats
             if (yearComparisonChart) yearComparisonChart.destroy();
             const points1 = (data1.cumulative_clipped || []).map(d => ({ x: d.day, y: d[metric], date: d.date }));
             const points2 = (data2.cumulative_clipped || []).map(d => ({ x: d.day, y: d[metric], date: d.date }));
+            const chartOptions = getComparisonChartOptions(metric, 'Day of Year', points1, points2, year1, year2);
+            chartOptions.onClick = (evt, elements) => {
+              if (elements.length > 0) {
+                const clickedYear = elements[0].datasetIndex === 0 ? year1 : year2;
+                showYearComparisonActivities(elements[0].datasetIndex === 0 ? 1 : 2);
+              }
+            };
+            chartOptions.onHover = (evt, elements) => { evt.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default'; };
             yearComparisonChart = new Chart(canvas.getContext('2d'), {
               type: 'line',
               data: {
@@ -284,7 +302,7 @@ module StravaStats
                   { label: year2, data: points2, borderColor: '#6b7280', backgroundColor: 'rgba(107, 114, 128, 0.1)', fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5, borderDash: [5, 5] }
                 ]
               },
-              options: getComparisonChartOptions(metric, 'Day of Year', points1, points2, year1, year2)
+              options: chartOptions
             });
           }
 
@@ -303,9 +321,9 @@ module StravaStats
           let seasonComparisonChart = null;
 
           function initSeasonComparison() {
-            const container = document.getElementById('season-comparison-container');
-            if (!container) return;
-            seasonComparisonData = JSON.parse(container.dataset.comparisons || '{}');
+            const dataEl = document.getElementById('season-comparison-data');
+            if (!dataEl) return;
+            seasonComparisonData = JSON.parse(dataEl.textContent || '{}');
             if (Object.keys(seasonComparisonData).length === 0) return;
             populateSeasonSelectors(document.getElementById('seasonComparisonSport').value);
             updateSeasonComparisonDisplay();
@@ -360,6 +378,13 @@ module StravaStats
             if (seasonComparisonChart) seasonComparisonChart.destroy();
             const points1 = (data1.cumulative_clipped || []).map(d => ({ x: d.day, y: d[metric], date: d.date }));
             const points2 = (data2.cumulative_clipped || []).map(d => ({ x: d.day, y: d[metric], date: d.date }));
+            const chartOptions = getComparisonChartOptions(metric, 'Day of Season (from Sep 1)', points1, points2, season1, season2);
+            chartOptions.onClick = (evt, elements) => {
+              if (elements.length > 0) {
+                showSeasonComparisonActivities(elements[0].datasetIndex === 0 ? 1 : 2);
+              }
+            };
+            chartOptions.onHover = (evt, elements) => { evt.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default'; };
             seasonComparisonChart = new Chart(canvas.getContext('2d'), {
               type: 'line',
               data: {
@@ -368,7 +393,7 @@ module StravaStats
                   { label: season2, data: points2, borderColor: '#6b7280', backgroundColor: 'rgba(107, 114, 128, 0.1)', fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5, borderDash: [5, 5] }
                 ]
               },
-              options: getComparisonChartOptions(metric, 'Day of Season (from Sep 1)', points1, points2, season1, season2)
+              options: chartOptions
             });
           }
 
