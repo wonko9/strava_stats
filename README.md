@@ -85,9 +85,25 @@ bin/strava_stats generate
 | `bin/strava_stats refresh ID [ID...]` | Re-fetch specific activities from Strava |
 | `bin/strava_stats status` | Show sync status |
 | `bin/strava_stats resorts` | List all resorts in database |
-| `bin/strava_stats resorts --add "Name,Country,Region,Lat,Lng"` | Add a custom resort |
+| `bin/strava_stats resorts --add "..."` | Add a custom resort (see below) |
 | `bin/strava_stats peaks` | List all peaks in database |
-| `bin/strava_stats peaks --add "Name,Country,Region,Lat,Lng,Elev,Radius"` | Add a custom peak |
+| `bin/strava_stats peaks --add "..."` | Add a custom peak (see below) |
+
+### Adding custom locations
+
+**Add a resort:**
+```bash
+bin/strava_stats resorts --add "Name,Country,Region,Latitude,Longitude,RadiusKm,Type"
+# Example:
+bin/strava_stats resorts --add "My Resort,USA,Colorado,39.5,-106.0,5.0,resort"
+```
+
+**Add a peak:**
+```bash
+bin/strava_stats peaks --add "Name,Country,Region,Latitude,Longitude,ElevationM,RadiusKm"
+# Example:
+bin/strava_stats peaks --add "Mount Example,USA,Colorado,39.5,-106.0,4000,2.0"
+```
 
 ### Viewing the dashboard
 
