@@ -1009,7 +1009,31 @@ module StravaStats
                 options: {
                   responsive: true,
                   maintainAspectRatio: false,
-                  plugins: { legend: { display: false } },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                      callbacks: {
+                        title: function(tooltipItems) {
+                          return tooltipItems[0].label;
+                        },
+                        beforeLabel: function() { return null; },
+                        label: function(tooltipItem) {
+                          const currentMetric = document.getElementById('sport-chart-metric-' + sport).value;
+                          const metricLabels = {
+                            'total_activities': 'Total Activities',
+                            'total_days': 'Total Days',
+                            'total_time_hours': 'Total Hours',
+                            'total_distance_miles': 'Total Miles',
+                            'total_elevation_feet': 'Total Vertical (ft)',
+                            'total_calories': 'Total Calories'
+                          };
+                          const label = metricLabels[currentMetric] || currentMetric;
+                          return label + ': ' + tooltipItem.raw.toLocaleString();
+                        },
+                        afterLabel: function() { return null; }
+                      }
+                    }
+                  },
                   scales: {
                     y: { beginAtZero: true, grid: { color: '#e5e5e5' }, ticks: { precision: 0 } },
                     x: { grid: { display: false } }
@@ -1048,12 +1072,12 @@ module StravaStats
 
             function getMetricLabel(metric) {
               const labels = {
-                'total_activities': 'Activities',
-                'total_days': 'Days',
-                'total_time_hours': 'Hours',
-                'total_distance_miles': 'Miles',
-                'total_elevation_feet': 'Vertical (ft)',
-                'total_calories': 'Calories'
+                'total_activities': 'Total Activities',
+                'total_days': 'Total Days',
+                'total_time_hours': 'Total Hours',
+                'total_distance_miles': 'Total Miles',
+                'total_elevation_feet': 'Total Vertical (ft)',
+                'total_calories': 'Total Calories'
               };
               return labels[metric] || metric;
             }
@@ -1061,6 +1085,7 @@ module StravaStats
             // Chart.js configuration
             Chart.defaults.color = '#6d6d78';
             Chart.defaults.borderColor = '#e5e5e5';
+            Chart.defaults.plugins.tooltip.displayColors = false;
 
             // By Year Chart
             const byYearCtx = document.getElementById('byYearChart').getContext('2d');
@@ -1070,7 +1095,14 @@ module StravaStats
               options: {
                 responsive: true,
                 plugins: {
-                  legend: { display: false }
+                  legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      label: function(ctx) {
+                        return 'Activities: ' + ctx.raw.toLocaleString();
+                      }
+                    }
+                  }
                 },
                 scales: {
                   y: {
@@ -1095,6 +1127,13 @@ module StravaStats
                   legend: {
                     position: 'right',
                     labels: { padding: 15 }
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: function(ctx) {
+                        return ctx.label + ': ' + ctx.raw.toLocaleString() + ' activities';
+                      }
+                    }
                   }
                 }
               }
@@ -1686,11 +1725,11 @@ module StravaStats
               <div class="sport-chart-header">
                 <span class="sport-chart-title">#{format_sport_name(sport)} by Year</span>
                 <select id="sport-chart-metric-#{sport}" onchange="updateSportChart('#{sport}')">
-                  <option value="total_activities">Activities</option>
+                  <option value="total_activities" selected>Activities</option>
                   <option value="total_days">Days</option>
                   <option value="total_time_hours">Hours</option>
                   <option value="total_distance_miles">Miles</option>
-                  <option value="total_elevation_feet" selected>Vertical (ft)</option>
+                  <option value="total_elevation_feet">Vertical (ft)</option>
                   <option value="total_calories">Calories</option>
                 </select>
               </div>
@@ -1891,10 +1930,10 @@ module StravaStats
               <div class="chart-controls">
                 <label>Show: </label>
                 <select id="year-comparison-metric" onchange="updateYearComparisonChart()">
-                  <option value="activities">Activities</option>
+                  <option value="activities" selected>Activities</option>
                   <option value="hours">Hours</option>
                   <option value="miles">Miles</option>
-                  <option value="elevation" selected>Vertical (ft)</option>
+                  <option value="elevation">Vertical (ft)</option>
                   <option value="calories">Calories</option>
                 </select>
               </div>
@@ -1969,10 +2008,10 @@ module StravaStats
               <div class="chart-controls">
                 <label>Show: </label>
                 <select id="season-comparison-metric" onchange="updateSeasonComparisonChart()">
-                  <option value="activities">Activities</option>
+                  <option value="activities" selected>Activities</option>
                   <option value="hours">Hours</option>
                   <option value="miles">Miles</option>
-                  <option value="elevation" selected>Vertical (ft)</option>
+                  <option value="elevation">Vertical (ft)</option>
                   <option value="calories">Calories</option>
                 </select>
               </div>
@@ -2013,10 +2052,10 @@ module StravaStats
             <div class="chart-controls">
               <label>Show: </label>
               <select class="metric-selector" onchange="updateComparisonChart('#{id}', this.value)">
-                <option value="activities">Activities</option>
+                <option value="activities" selected>Activities</option>
                 <option value="hours">Hours</option>
                 <option value="miles">Miles</option>
-                <option value="elevation" selected>Vertical (ft)</option>
+                <option value="elevation">Vertical (ft)</option>
                 <option value="calories">Calories</option>
               </select>
             </div>
