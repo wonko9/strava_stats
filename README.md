@@ -86,6 +86,8 @@ bin/strava_stats generate
 | `bin/strava_stats status` | Show sync status |
 | `bin/strava_stats resorts` | List all resorts in database |
 | `bin/strava_stats resorts --add "Name,Country,Region,Lat,Lng"` | Add a custom resort |
+| `bin/strava_stats peaks` | List all peaks in database |
+| `bin/strava_stats peaks --add "Name,Country,Region,Lat,Lng,Elev,Radius"` | Add a custom peak |
 
 ### Viewing the dashboard
 

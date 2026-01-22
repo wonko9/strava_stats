@@ -151,6 +151,29 @@ module StravaStats
       end
     end
 
+    desc 'peaks', 'List all peaks in database'
+    option :add, type: :string, desc: 'Add a peak (format: "Name,Country,Region,Lat,Lng,Elevation,Radius")'
+    def peaks
+      setup_components
+
+      if options[:add]
+        add_peak(options[:add])
+        return
+      end
+
+      peaks = @database.get_all_peaks
+      puts "\n=== Peaks Database (#{peaks.count} peaks) ==="
+
+      by_country = peaks.group_by { |p| p['country'] }
+      by_country.sort.each do |country, country_peaks|
+        puts "\n#{country}:"
+        country_peaks.sort_by { |p| p['name'] }.each do |p|
+          elevation = p['elevation_m'] ? " (#{p['elevation_m']}m)" : ''
+          puts "  #{p['name']}#{elevation} - #{p['region']}"
+        end
+      end
+    end
+
     desc 'run', 'Sync and generate stats (default command)'
     def run_all
       setup_components
@@ -263,6 +286,32 @@ module StravaStats
 
       @database.insert_resort(resort)
       puts "✓ Added resort: #{resort[:name]}"
+
+      # Re-match activities
+      @location_matcher.match_all_activities
+    end
+
+    def add_peak(peak_string)
+      parts = peak_string.split(',').map(&:strip)
+
+      if parts.length < 5
+        puts 'Invalid format. Use: "Name,Country,Region,Latitude,Longitude[,ElevationM][,RadiusKm]"'
+        puts 'Example: "Mount Example,USA,Colorado,39.5,-106.0,4000,2.0"'
+        exit 1
+      end
+
+      peak = {
+        name: parts[0],
+        country: parts[1],
+        region: parts[2],
+        latitude: parts[3].to_f,
+        longitude: parts[4].to_f,
+        elevation_m: parts[5]&.to_i,
+        radius_km: parts[6]&.to_f || 2.0
+      }
+
+      @database.insert_peak(peak)
+      puts "✓ Added peak: #{peak[:name]}"
 
       # Re-match activities
       @location_matcher.match_all_activities
