@@ -442,7 +442,9 @@ module StravaStats
         name: activity['name'] || 'Activity',
         date: activity['start_date_local']&.split('T')&.first || '',
         elevation: ((activity['total_elevation_gain'] || 0) * METERS_TO_FEET).round(0),
-        hours: ((activity['moving_time'] || 0) * SECONDS_TO_HOURS).round(2)
+        hours: ((activity['moving_time'] || 0) * SECONDS_TO_HOURS).round(2),
+        miles: ((activity['distance'] || 0) * METERS_TO_MILES).round(1),
+        calories: (activity['calories'] || 0).round(0)
       }
     end
 

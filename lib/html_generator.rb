@@ -889,6 +889,8 @@ module StravaStats
                     <th class="number">Miles</th>
                     <th class="number">Vertical (ft)</th>
                     <th class="number">Calories</th>
+                    <th class="number">Cal/hr</th>
+                    <th class="number">Cal/activity</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1556,8 +1558,10 @@ module StravaStats
                     <span class="strava-link">View on Strava &rarr;</span>
                   </div>
                   <div class="activity-stats">
-                    <span>${formatNumber(a.elevation)} ft</span>
                     <span>${a.hours.toFixed(1)} hrs</span>
+                    <span>${a.miles.toFixed(1)} mi</span>
+                    <span>${formatNumber(a.elevation)} ft</span>
+                    <span>${formatNumber(a.calories)} cal</span>
                   </div>
                 </a>
               `).join('');
@@ -1662,6 +1666,8 @@ module StravaStats
 
     def sport_row(sport, stats)
       color = SPORT_COLORS[sport] || DEFAULT_COLOR
+      cal_per_hour = stats[:total_time_hours] > 0 ? (stats[:total_calories] / stats[:total_time_hours]).round(0) : 0
+      cal_per_activity = stats[:total_activities] > 0 ? (stats[:total_calories] / stats[:total_activities]).round(0) : 0
       <<~HTML
         <tr class="clickable" id="sport-row-#{sport}" onclick="toggleSportChart('#{sport}')">
           <td data-sort="#{format_sport_name(sport)}"><span class="sport-badge" style="background: #{color}">#{format_sport_name(sport)}</span><span class="expand-indicator"></span></td>
@@ -1671,9 +1677,11 @@ module StravaStats
           <td class="number" data-sort="#{stats[:total_distance_miles]}">#{format_number(stats[:total_distance_miles])}</td>
           <td class="number" data-sort="#{stats[:total_elevation_feet]}">#{format_number(stats[:total_elevation_feet])}</td>
           <td class="number" data-sort="#{stats[:total_calories]}">#{format_number(stats[:total_calories])}</td>
+          <td class="number" data-sort="#{cal_per_hour}">#{format_number(cal_per_hour)}</td>
+          <td class="number" data-sort="#{cal_per_activity}">#{format_number(cal_per_activity)}</td>
         </tr>
         <tr class="sport-chart-row" id="sport-chart-row-#{sport}">
-          <td colspan="7">
+          <td colspan="9">
             <div class="sport-chart-container">
               <div class="sport-chart-header">
                 <span class="sport-chart-title">#{format_sport_name(sport)} by Year</span>
