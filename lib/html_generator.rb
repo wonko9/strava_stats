@@ -1608,16 +1608,19 @@ module StravaStats
 
               headers.forEach((header, columnIndex) => {
                 header.addEventListener('click', () => {
-                  const rows = Array.from(tbody.querySelectorAll('tr'));
+                  // Get only data rows, not chart rows
+                  const allRows = Array.from(tbody.querySelectorAll('tr'));
+                  const dataRows = allRows.filter(r => !r.classList.contains('sport-chart-row'));
                   const isAscending = header.classList.contains('sort-asc');
 
                   // Clear all sort classes
                   headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
 
-                  // Sort rows
-                  rows.sort((a, b) => {
+                  // Sort data rows
+                  dataRows.sort((a, b) => {
                     const aCell = a.cells[columnIndex];
                     const bCell = b.cells[columnIndex];
+                    if (!aCell || !bCell) return 0;
 
                     // Get sort value from data attribute or text content
                     let aVal = aCell.dataset.sort !== undefined ? aCell.dataset.sort : aCell.textContent.trim();
@@ -1640,8 +1643,14 @@ module StravaStats
                   // Update sort indicator
                   header.classList.add(isAscending ? 'sort-desc' : 'sort-asc');
 
-                  // Re-append sorted rows
-                  rows.forEach(row => tbody.appendChild(row));
+                  // Re-append sorted rows, keeping chart rows with their data rows
+                  dataRows.forEach(row => {
+                    tbody.appendChild(row);
+                    // Find and append the associated chart row if it exists
+                    const chartRowId = row.id ? row.id.replace('sport-row-', 'sport-chart-row-') : null;
+                    const chartRow = chartRowId ? document.getElementById(chartRowId) : null;
+                    if (chartRow) tbody.appendChild(chartRow);
+                  });
                 });
               });
             });
