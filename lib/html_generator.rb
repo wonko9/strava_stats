@@ -114,10 +114,13 @@ module StravaStats
       sports = year_comparisons.keys.sort
       sport_options = sports.map { |s| "<option value=\"#{s}\">#{format_sport_name(s)}</option>" }.join
 
+      # Strip activities from comparison data - they're accessed via activityIds instead
+      stripped_comparisons = strip_activities_from_comparisons(year_comparisons)
+
       <<~HTML
         <div class="section">
           <h2>Year-over-Year Comparison</h2>
-          <div id="year-comparison-container" data-comparisons='#{year_comparisons.to_json}'>
+          <div id="year-comparison-container" data-comparisons='#{stripped_comparisons.to_json}'>
             <div class="comparison-selectors">
               <div><label>Sport:</label><select id="yearComparisonSport" onchange="onYearSportChange()">#{sport_options}</select></div>
               <div class="year-selectors">
@@ -139,10 +142,13 @@ module StravaStats
       sports = season_comparisons.keys.sort
       sport_options = sports.map { |s| "<option value=\"#{s}\">#{format_sport_name(s)}</option>" }.join
 
+      # Strip activities from comparison data - they're accessed via activityIds instead
+      stripped_comparisons = strip_activities_from_comparisons(season_comparisons)
+
       <<~HTML
         <div class="section">
           <h2>Season-over-Season Comparison</h2>
-          <div id="season-comparison-container" data-comparisons='#{season_comparisons.to_json}'>
+          <div id="season-comparison-container" data-comparisons='#{stripped_comparisons.to_json}'>
             <div class="comparison-selectors">
               <div><label>Sport:</label><select id="seasonComparisonSport" onchange="onSeasonSportChange()">#{sport_options}</select></div>
               <div class="year-selectors">
@@ -309,6 +315,34 @@ module StravaStats
           #{seasons}
         </div>
       HTML
+    end
+
+    # Remove activities array from comparison data to reduce HTML size
+    # Activities are already available via activityIds and allActivities in JavaScript
+    def strip_activities_from_comparisons(comparisons)
+      comparisons.transform_values do |sport_data|
+        result = sport_data.dup
+
+        # Handle year comparisons (yearly_data key)
+        if sport_data[:yearly_data]
+          result[:yearly_data] = sport_data[:yearly_data].transform_values do |period_data|
+            period_data.merge(
+              stats: period_data[:stats]&.reject { |k, _| k == :activities }
+            )
+          end
+        end
+
+        # Handle season comparisons (season_data key)
+        if sport_data[:season_data]
+          result[:season_data] = sport_data[:season_data].transform_values do |period_data|
+            period_data.merge(
+              stats: period_data[:stats]&.reject { |k, _| k == :activities }
+            )
+          end
+        end
+
+        result
+      end
     end
   end
 end

@@ -20,31 +20,33 @@ module StravaStats
       Snowshoe
     ].freeze
 
-    def initialize(database:)
-      @database = database
+    def initialize(activities:, resorts:, peaks:)
+      @activities = activities
+      @resorts = resorts
+      @peaks = peaks
       @resorts_by_activity = {}
       @peaks_by_activity = {}
     end
 
     def calculate_all_stats
-      activities = @database.get_all_activities
-      by_sport_and_year = calculate_by_sport_and_year(activities)
-      winter_by_season = calculate_winter_by_season(activities)
+      all_activities = @activities.all
+      by_sport_and_year = calculate_by_sport_and_year(all_activities)
+      winter_by_season = calculate_winter_by_season(all_activities)
 
       # Prefetch resort and peak matches for all activities to avoid N+1 queries
-      activity_ids = activities.map { |a| a['id'] }
-      @resorts_by_activity = @database.get_resorts_for_activities(activity_ids)
-      @peaks_by_activity = @database.get_peaks_for_activities(activity_ids)
+      activity_ids = all_activities.map { |a| a['id'] }
+      @resorts_by_activity = @resorts.for_activities(activity_ids)
+      @peaks_by_activity = @peaks.for_activities(activity_ids)
 
       {
-        summary: calculate_summary(activities),
-        by_sport: calculate_by_sport(activities),
-        by_year: calculate_by_year(activities),
+        summary: calculate_summary(all_activities),
+        by_sport: calculate_by_sport(all_activities),
+        by_year: calculate_by_year(all_activities),
         by_sport_and_year: by_sport_and_year,
         winter_by_season: winter_by_season,
-        resorts_by_season: calculate_resorts_by_season(activities),
-        backcountry_by_season: calculate_backcountry_by_season(activities),
-        peaks_by_season: calculate_peaks_by_season(activities),
+        resorts_by_season: calculate_resorts_by_season(all_activities),
+        backcountry_by_season: calculate_backcountry_by_season(all_activities),
+        peaks_by_season: calculate_peaks_by_season(all_activities),
         year_comparisons: calculate_year_comparisons(by_sport_and_year),
         season_comparisons: calculate_season_comparisons(winter_by_season)
       }
@@ -214,7 +216,7 @@ module StravaStats
       current_day_of_year = Time.now.yday
 
       # Get all activities for cumulative calculations
-      all_activities = @database.get_all_activities
+      all_activities = @activities.all
 
       # Get all years that have data across all sports
       all_years = by_sport_and_year.values.flat_map(&:keys).uniq
@@ -265,7 +267,7 @@ module StravaStats
       current_day_of_season = ((Time.now - season_start) / 86400).to_i
 
       # Get all activities for cumulative calculations
-      all_activities = @database.get_all_activities
+      all_activities = @activities.all
 
       # Get all seasons that have data
       all_seasons = winter_by_season.keys

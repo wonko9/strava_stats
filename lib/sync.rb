@@ -10,9 +10,10 @@ module StravaStats
     # At 2 sec delay, we can fetch ~100 activities in ~3.5 minutes before hitting limit
     RATE_LIMIT_DELAY = 2.0  # seconds between detailed requests
 
-    def initialize(api:, database:, on_progress: nil)
+    def initialize(api:, activities:, auth:, on_progress: nil)
       @api = api
-      @database = database
+      @activities = activities
+      @auth = auth
       @on_progress = on_progress  # Callback to regenerate HTML
     end
 
@@ -20,12 +21,12 @@ module StravaStats
       logger.info "\n=== Syncing Activities ==="
 
       # Show current status
-      current_count = @database.get_activity_count
-      without_details = @database.get_activities_without_details_count
+      current_count = @activities.count
+      without_details = @activities.without_details_count
       logger.info "Currently synced: #{current_count} activities"
       logger.info "Missing details: #{without_details}" if without_details > 0
 
-      last_sync = full ? nil : @database.get_last_sync_at
+      last_sync = full ? nil : @auth.last_sync_at
       sync_start_time = Time.now.to_i
 
       if last_sync
@@ -40,7 +41,7 @@ module StravaStats
       count = 0
       begin
         @api.get_all_activities(after: last_sync) do |activity|
-          @database.upsert_activity(activity, details_fetched: false)
+          @activities.save(activity, details_fetched: false)
           count += 1
           print "\r  Fetched #{count} activity summaries..."
         end
@@ -64,13 +65,13 @@ module StravaStats
       end
 
       # Update last sync timestamp
-      @database.set_last_sync_at(sync_start_time)
+      @auth.update_last_sync_at(sync_start_time)
 
       # Step 2: Fetch detailed data for activities missing details (newest first)
       fetch_missing_details
 
-      total = @database.get_activity_count
-      remaining_details = @database.get_activities_without_details_count
+      total = @activities.count
+      remaining_details = @activities.without_details_count
       logger.info "\n=== Sync Complete ==="
       logger.info "Total activities: #{total}"
       logger.info "Still need details: #{remaining_details}" if remaining_details > 0
@@ -91,7 +92,7 @@ module StravaStats
 
         begin
           detailed = @api.get_activity(activity_id)
-          @database.upsert_activity(detailed, details_fetched: true)
+          @activities.save(detailed, details_fetched: true)
           logger.info " #{detailed['name']} (#{detailed['sport_type']})"
           refreshed += 1
         rescue StravaStats::RateLimitError => e
@@ -114,24 +115,24 @@ module StravaStats
     end
 
     def fetch_missing_details
-      activities = @database.get_activities_without_details
-      return if activities.empty?
+      pending = @activities.without_details
+      return if pending.empty?
 
       logger.info "\n=== Fetching Activity Details (for calories, etc.) ==="
-      logger.info "#{activities.count} activities need details..."
+      logger.info "#{pending.count} activities need details..."
       logger.info "This may take a while due to API rate limits.\n"
 
       fetched = 0
-      activities.each_with_index do |activity, index|
+      pending.each_with_index do |activity, index|
         activity_id = activity['id']
         activity_date = activity['start_date_local']&.split('T')&.first || 'unknown date'
         activity_name = activity['name'] || 'Untitled'
 
-        print "\r  [#{index + 1}/#{activities.count}] #{activity_date}: #{activity_name[0..40].ljust(41)}..."
+        print "\r  [#{index + 1}/#{pending.count}] #{activity_date}: #{activity_name[0..40].ljust(41)}..."
 
         begin
           detailed = @api.get_activity(activity_id)
-          @database.upsert_activity(detailed, details_fetched: true)
+          @activities.save(detailed, details_fetched: true)
           fetched += 1
         rescue StravaStats::RateLimitError => e
           logger.warn "\n\nRate limit hit! #{e.message}"
@@ -151,7 +152,7 @@ module StravaStats
         end
 
         # Rate limiting - be conservative to avoid hitting limits
-        sleep(RATE_LIMIT_DELAY) if index < activities.count - 1
+        sleep(RATE_LIMIT_DELAY) if index < pending.count - 1
       end
 
       logger.info "\nFetched details for #{fetched} activities"
@@ -159,10 +160,10 @@ module StravaStats
     end
 
     def sync_status
-      last_sync = @database.get_last_sync_at
-      total = @database.get_activity_count
-      newest = @database.get_newest_activity_date
-      without_details = @database.get_activities_without_details_count
+      last_sync = @auth.last_sync_at
+      total = @activities.count
+      newest = @activities.newest_date
+      without_details = @activities.without_details_count
 
       {
         last_sync: last_sync ? Time.at(last_sync) : nil,

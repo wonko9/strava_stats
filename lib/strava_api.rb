@@ -27,10 +27,10 @@ module StravaStats
 
     SCOPES = 'read,activity:read_all'
 
-    def initialize(client_id:, client_secret:, database:, callback_port: 8888)
+    def initialize(client_id:, client_secret:, auth:, callback_port: 8888)
       @client_id = client_id
       @client_secret = client_secret
-      @database = database
+      @auth = auth
       @callback_port = callback_port
       @access_token = nil
 
@@ -74,7 +74,7 @@ module StravaStats
 
     def get_total_activity_count
       # Get athlete ID from stored tokens
-      tokens = @database.get_tokens
+      tokens = @auth.get_tokens
       return nil unless tokens && tokens[:athlete]
 
       athlete_id = tokens[:athlete]['id']
@@ -137,7 +137,7 @@ module StravaStats
     private
 
     def load_tokens
-      tokens = @database.get_tokens
+      tokens = @auth.get_tokens
       return unless tokens
 
       if tokens[:expires_at] && tokens[:expires_at] < Time.now.to_i
@@ -238,7 +238,7 @@ module StravaStats
       @refresh_token = data['refresh_token']
       @expires_at = data['expires_at']
 
-      @database.save_tokens(
+      @auth.save_tokens(
         access_token: @access_token,
         refresh_token: @refresh_token,
         expires_at: @expires_at,

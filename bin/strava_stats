@@ -106,7 +106,7 @@ module StravaStats
       logger.info "Activities missing details: #{status[:without_details]}" if status[:without_details].to_i > 0
       logger.info "Newest activity: #{status[:newest_activity] ? status[:newest_activity].strftime('%Y-%m-%d') : 'N/A'}"
 
-      tokens = @database.get_tokens
+      tokens = @auth.get_tokens
       if tokens
         logger.info "\nAuthenticated as: #{tokens.dig(:athlete, 'firstname')} #{tokens.dig(:athlete, 'lastname')}"
       else
@@ -124,10 +124,10 @@ module StravaStats
         return
       end
 
-      resorts = @database.get_all_resorts
-      logger.info "\n=== Resorts Database (#{resorts.count} resorts) ==="
+      all_resorts = @resorts.all
+      logger.info "\n=== Resorts Database (#{all_resorts.count} resorts) ==="
 
-      by_country = resorts.group_by { |r| r['country'] }
+      by_country = all_resorts.group_by { |r| r['country'] }
       by_country.sort.each do |country, country_resorts|
         logger.info "\n#{country}:"
         country_resorts.sort_by { |r| r['name'] }.each do |r|
@@ -147,10 +147,10 @@ module StravaStats
         return
       end
 
-      peaks = @database.get_all_peaks
-      logger.info "\n=== Peaks Database (#{peaks.count} peaks) ==="
+      all_peaks = @peaks.all
+      logger.info "\n=== Peaks Database (#{all_peaks.count} peaks) ==="
 
-      by_country = peaks.group_by { |p| p['country'] }
+      by_country = all_peaks.group_by { |p| p['country'] }
       by_country.sort.each do |country, country_peaks|
         logger.info "\n#{country}:"
         country_peaks.sort_by { |p| p['name'] }.each do |p|
@@ -181,9 +181,9 @@ module StravaStats
       setup_components
 
       activity_ids.each do |id|
-        activity = @database.get_activity(id.to_i)
+        activity = @activities.find(id.to_i)
         if activity
-          @database.ignore_activity(id.to_i)
+          @activities.ignore(id.to_i)
           logger.info "Ignored: #{activity['name']} (#{activity['sport_type']}, #{activity['start_date_local']&.split('T')&.first})"
         else
           logger.warn "Activity not found: #{id}"
@@ -203,9 +203,9 @@ module StravaStats
       setup_components
 
       activity_ids.each do |id|
-        activity = @database.get_activity(id.to_i)
+        activity = @activities.find(id.to_i)
         if activity
-          @database.unignore_activity(id.to_i)
+          @activities.unignore(id.to_i)
           logger.info "Restored: #{activity['name']} (#{activity['sport_type']})"
         else
           logger.warn "Activity not found: #{id}"
@@ -219,14 +219,14 @@ module StravaStats
     def ignored
       setup_components
 
-      activities = @database.get_ignored_activities
-      if activities.empty?
+      ignored_activities = @activities.ignored
+      if ignored_activities.empty?
         logger.info "No ignored activities."
         return
       end
 
-      logger.info "\n=== Ignored Activities (#{activities.count}) ==="
-      activities.each do |a|
+      logger.info "\n=== Ignored Activities (#{ignored_activities.count}) ==="
+      ignored_activities.each do |a|
         date = a['start_date_local']&.split('T')&.first || 'unknown'
         logger.info "  #{a['id']}: #{a['name']} (#{a['sport_type']}, #{date})"
       end
@@ -242,7 +242,7 @@ module StravaStats
 
       require 'csv'
 
-      activities = @database.get_all_activities(include_ignored: options[:include_ignored])
+      activities = @activities.all(include_ignored: options[:include_ignored])
       output_file = options[:output]
 
       CSV.open(output_file, 'w') do |csv|
@@ -310,11 +310,16 @@ module StravaStats
       @app = Application.new(@factory)
 
       # Expose components for direct access where needed
-      @database = @factory.database
       @api = @factory.api
       @location_matcher = @factory.location_matcher
       @stats_calculator = @factory.stats_calculator
       @html_generator = @factory.html_generator
+
+      # Repositories
+      @activities = @factory.activities
+      @resorts = @factory.resorts
+      @peaks = @factory.peaks
+      @auth = @factory.auth
 
       # Create syncer with progress callback to regenerate HTML
       @syncer = @app.syncer_with_progress
@@ -371,7 +376,7 @@ module StravaStats
         resort_type: parts[6] || 'resort'
       }
 
-      @database.insert_resort(resort)
+      @resorts.insert(resort)
       logger.info "Added resort: #{resort[:name]}"
 
       # Re-match activities
@@ -397,7 +402,7 @@ module StravaStats
         radius_km: parts[6]&.to_f || 2.0
       }
 
-      @database.insert_peak(peak)
+      @peaks.insert(peak)
       logger.info "Added peak: #{peak[:name]}"
 
       # Re-match activities

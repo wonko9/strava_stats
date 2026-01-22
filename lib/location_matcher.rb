@@ -32,31 +32,34 @@ module StravaStats
     RESORTS_FILE = File.join(DATA_DIR, 'resorts.yml')
     PEAKS_FILE = File.join(DATA_DIR, 'peaks.yml')
 
-    def initialize(database:)
+    def initialize(database:, resorts: nil, peaks: nil, activities: nil)
       @database = database
+      @resorts = resorts
+      @peaks = peaks
+      @activities = activities
     end
 
     def seed_resorts_if_empty
-      return if @database.get_resort_count.positive?
+      return if @resorts.count.positive?
 
       logger.info "Seeding resort database..."
       seed_resorts
-      logger.info "Seeded #{@database.get_resort_count} resorts"
+      logger.info "Seeded #{@resorts.count} resorts"
     end
 
     def seed_peaks_if_empty
-      return if @database.get_peak_count.positive?
+      return if @peaks.count.positive?
 
       logger.info "Seeding peaks database..."
       seed_peaks
-      logger.info "Seeded #{@database.get_peak_count} peaks"
+      logger.info "Seeded #{@peaks.count} peaks"
     end
 
     def match_all_activities
       logger.info "\n=== Matching Activities to Resorts ==="
 
-      activities = @database.get_all_activities
-      resorts = @database.get_all_resorts
+      all_activities = @activities.all
+      all_resorts = @resorts.all
 
       matched = 0
       winter_count = 0
@@ -64,9 +67,9 @@ module StravaStats
       # Wrap clear/rebuild in transaction for atomicity
       @database.transaction do
         # Clear existing matches
-        @database.clear_activity_resorts
+        @resorts.clear_activity_links
 
-        activities.each do |activity|
+        all_activities.each do |activity|
           next unless WINTER_SPORTS.include?(activity['sport_type'])
 
           winter_count += 1
@@ -76,10 +79,10 @@ module StravaStats
           next unless lat && lng
 
           # Find nearest resort within radius
-          match = find_nearest_resort(lat, lng, resorts)
+          match = find_nearest_resort(lat, lng, all_resorts)
 
           if match
-            @database.link_activity_to_resort(
+            @resorts.link_activity(
               activity_id: activity['id'],
               resort_id: match[:resort]['id'],
               distance_km: match[:distance],
@@ -99,10 +102,10 @@ module StravaStats
     end
 
     def match_backcountry_to_peaks
-      activities = @database.get_all_activities
-      peaks = @database.get_all_peaks
+      all_activities = @activities.all
+      all_peaks = @peaks.all
 
-      return 0 if peaks.empty?
+      return 0 if all_peaks.empty?
 
       matched = 0
       backcountry_count = 0
@@ -110,9 +113,9 @@ module StravaStats
       # Wrap clear/rebuild in transaction for atomicity
       @database.transaction do
         # Clear existing peak matches
-        @database.clear_activity_peaks
+        @peaks.clear_activity_links
 
-        activities.each do |activity|
+        all_activities.each do |activity|
           next unless BACKCOUNTRY_SPORTS.include?(activity['sport_type'])
 
           backcountry_count += 1
@@ -122,10 +125,10 @@ module StravaStats
           next unless lat && lng
 
           # Find nearest peak within radius
-          match = find_nearest_peak(lat, lng, peaks)
+          match = find_nearest_peak(lat, lng, all_peaks)
 
           if match
-            @database.link_activity_to_peak(
+            @peaks.link_activity(
               activity_id: activity['id'],
               peak_id: match[:peak]['id'],
               distance_km: match[:distance]
@@ -140,7 +143,7 @@ module StravaStats
     end
 
     def find_nearest_peak(lat, lng, peaks = nil)
-      peaks ||= @database.get_all_peaks
+      peaks ||= @peaks.all
 
       nearest = nil
       min_distance = Float::INFINITY
@@ -163,7 +166,7 @@ module StravaStats
     end
 
     def find_nearest_resort(lat, lng, resorts = nil)
-      resorts ||= @database.get_all_resorts
+      resorts ||= @resorts.all
 
       nearest = nil
       min_distance = Float::INFINITY
@@ -205,14 +208,14 @@ module StravaStats
     def seed_resorts
       resorts = load_resorts_data
       resorts.each do |resort|
-        @database.insert_resort(symbolize_keys(resort))
+        @resorts.insert(symbolize_keys(resort))
       end
     end
 
     def seed_peaks
       peaks = load_peaks_data
       peaks.each do |peak|
-        @database.insert_peak(symbolize_keys(peak))
+        @peaks.insert(symbolize_keys(peak))
       end
     end
 
