@@ -868,7 +868,7 @@ module StravaStats
                   <h3>Activities by Year</h3>
                   <canvas id="byYearChart"></canvas>
                 </div>
-                <div class="chart-container">
+                <div class="chart-container" style="max-width: 400px;">
                   <h3>Activities by Sport</h3>
                   <canvas id="bySportChart"></canvas>
                 </div>
