@@ -88,6 +88,11 @@ bin/strava_stats generate
 | `bin/strava_stats resorts --add "..."` | Add a custom resort (see below) |
 | `bin/strava_stats peaks` | List all peaks in database |
 | `bin/strava_stats peaks --add "..."` | Add a custom peak (see below) |
+| `bin/strava_stats export` | Export all activities to CSV (for Google Sheets) |
+| `bin/strava_stats export --output file.csv` | Export to custom filename |
+| `bin/strava_stats ignore ID [ID...]` | Exclude activities from stats |
+| `bin/strava_stats ignored` | List all ignored activities |
+| `bin/strava_stats unignore ID [ID...]` | Restore ignored activities to stats |
 
 ### Adding custom locations
 

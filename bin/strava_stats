@@ -174,6 +174,135 @@ module StravaStats
       end
     end
 
+    desc 'ignore ACTIVITY_IDS', 'Ignore activities (exclude from stats)'
+    long_desc <<-LONGDESC
+      Mark activities as ignored so they are excluded from statistics calculations.
+      The activities remain in the database but won't appear in any stats or charts.
+
+      Examples:
+        strava_stats ignore 4915043957
+        strava_stats ignore 4915043957 4915043958
+
+      Use 'strava_stats ignored' to list all ignored activities.
+      Use 'strava_stats unignore ID' to restore an activity.
+    LONGDESC
+    def ignore(*activity_ids)
+      if activity_ids.empty?
+        puts "Usage: strava_stats ignore ACTIVITY_ID [ACTIVITY_ID ...]"
+        exit 1
+      end
+
+      setup_components
+
+      activity_ids.each do |id|
+        activity = @database.get_activity(id.to_i)
+        if activity
+          @database.ignore_activity(id.to_i)
+          puts "✓ Ignored: #{activity['name']} (#{activity['sport_type']}, #{activity['start_date_local']&.split('T')&.first})"
+        else
+          puts "✗ Activity not found: #{id}"
+        end
+      end
+
+      puts "\nRun 'strava_stats generate' to update the HTML with the changes."
+    end
+
+    desc 'unignore ACTIVITY_IDS', 'Restore ignored activities to stats'
+    def unignore(*activity_ids)
+      if activity_ids.empty?
+        puts "Usage: strava_stats unignore ACTIVITY_ID [ACTIVITY_ID ...]"
+        exit 1
+      end
+
+      setup_components
+
+      activity_ids.each do |id|
+        activity = @database.get_activity(id.to_i)
+        if activity
+          @database.unignore_activity(id.to_i)
+          puts "✓ Restored: #{activity['name']} (#{activity['sport_type']})"
+        else
+          puts "✗ Activity not found: #{id}"
+        end
+      end
+
+      puts "\nRun 'strava_stats generate' to update the HTML with the changes."
+    end
+
+    desc 'ignored', 'List all ignored activities'
+    def ignored
+      setup_components
+
+      activities = @database.get_ignored_activities
+      if activities.empty?
+        puts "No ignored activities."
+        return
+      end
+
+      puts "\n=== Ignored Activities (#{activities.count}) ==="
+      activities.each do |a|
+        date = a['start_date_local']&.split('T')&.first || 'unknown'
+        puts "  #{a['id']}: #{a['name']} (#{a['sport_type']}, #{date})"
+      end
+
+      puts "\nUse 'strava_stats unignore ID' to restore an activity."
+    end
+
+    desc 'export', 'Export activities to CSV file'
+    option :output, type: :string, default: 'activities.csv', desc: 'Output file path'
+    option :include_ignored, type: :boolean, default: false, desc: 'Include ignored activities'
+    def export
+      setup_components
+
+      require 'csv'
+
+      activities = @database.get_all_activities(include_ignored: options[:include_ignored])
+      output_file = options[:output]
+
+      CSV.open(output_file, 'w') do |csv|
+        # Header row
+        csv << [
+          'ID', 'Name', 'Sport', 'Date', 'Time',
+          'Duration (min)', 'Distance (mi)', 'Elevation (ft)',
+          'Calories', 'Avg Speed (mph)', 'Max Speed (mph)',
+          'Avg HR', 'Max HR', 'City', 'State', 'Country',
+          'Strava URL'
+        ]
+
+        # Data rows
+        activities.each do |a|
+          date_parts = a['start_date_local']&.split('T') || ['', '']
+          duration_min = ((a['moving_time'] || 0) / 60.0).round(1)
+          distance_mi = ((a['distance'] || 0) * 0.000621371).round(2)
+          elevation_ft = ((a['total_elevation_gain'] || 0) * 3.28084).round(0)
+          avg_speed = ((a['average_speed'] || 0) * 2.23694).round(1)
+          max_speed = ((a['max_speed'] || 0) * 2.23694).round(1)
+
+          csv << [
+            a['id'],
+            a['name'],
+            a['sport_type'],
+            date_parts[0],
+            date_parts[1]&.gsub('Z', ''),
+            duration_min,
+            distance_mi,
+            elevation_ft,
+            (a['calories'] || 0).round(0),
+            avg_speed,
+            max_speed,
+            a['average_heartrate']&.round(0),
+            a['max_heartrate']&.round(0),
+            a['location_city'],
+            a['location_state'],
+            a['location_country'],
+            "https://www.strava.com/activities/#{a['id']}"
+          ]
+        end
+      end
+
+      puts "✓ Exported #{activities.count} activities to #{output_file}"
+    end
+
     desc 'run', 'Sync and generate stats (default command)'
     def run_all
       setup_components

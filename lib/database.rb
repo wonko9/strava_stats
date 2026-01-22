@@ -204,7 +204,8 @@ module StravaStats
         'splits_standard' => 'TEXT',
         'laps' => 'TEXT',
         'segment_efforts' => 'TEXT',
-        'best_efforts' => 'TEXT'
+        'best_efforts' => 'TEXT',
+        'ignored' => 'INTEGER DEFAULT 0'
       }
 
       migrations.each do |col_name, col_type|
@@ -363,12 +364,32 @@ module StravaStats
       ])
     end
 
-    def get_all_activities
-      @db.execute('SELECT * FROM activities ORDER BY start_date DESC')
+    def get_all_activities(include_ignored: false)
+      if include_ignored
+        @db.execute('SELECT * FROM activities ORDER BY start_date DESC')
+      else
+        @db.execute('SELECT * FROM activities WHERE ignored = 0 OR ignored IS NULL ORDER BY start_date DESC')
+      end
     end
 
     def get_activities_by_sport(sport_type)
-      @db.execute('SELECT * FROM activities WHERE sport_type = ? ORDER BY start_date DESC', [sport_type])
+      @db.execute('SELECT * FROM activities WHERE sport_type = ? AND (ignored = 0 OR ignored IS NULL) ORDER BY start_date DESC', [sport_type])
+    end
+
+    def ignore_activity(activity_id)
+      @db.execute('UPDATE activities SET ignored = 1 WHERE id = ?', [activity_id])
+    end
+
+    def unignore_activity(activity_id)
+      @db.execute('UPDATE activities SET ignored = 0 WHERE id = ?', [activity_id])
+    end
+
+    def get_ignored_activities
+      @db.execute('SELECT * FROM activities WHERE ignored = 1 ORDER BY start_date DESC')
+    end
+
+    def get_activity(activity_id)
+      @db.get_first_row('SELECT * FROM activities WHERE id = ?', [activity_id])
     end
 
     def get_activity_count

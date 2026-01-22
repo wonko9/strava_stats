@@ -4,6 +4,9 @@ config.yml
 # Database files (contains personal activity data)
 *.db
 
+# Exported data
+*.csv
+
 # Generated output
 output/
 
