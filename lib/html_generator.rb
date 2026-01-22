@@ -71,6 +71,7 @@ module StravaStats
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>#{athlete_name ? "#{athlete_name}'s " : ''}Strava Stats</title>
+          <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23FC4C02'/><path d='M8 22 L12 12 L16 18 L20 8 L24 22' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
           <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
           <style>
             :root {
