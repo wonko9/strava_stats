@@ -268,17 +268,25 @@ module StravaStats
         # Rate limit exceeded - check headers for reset time
         # Strava returns X-RateLimit-Limit and X-RateLimit-Usage headers
         # Format: "15-minute-limit,daily-limit" and "15-min-usage,daily-usage"
-        usage = response.headers['X-RateLimit-Usage']&.split(',')&.map(&:to_i) || [0, 0]
-        limits = response.headers['X-RateLimit-Limit']&.split(',')&.map(&:to_i) || [100, 1000]
+        usage_header = response.headers['X-RateLimit-Usage']
+        limits_header = response.headers['X-RateLimit-Limit']
 
-        if usage[1] >= limits[1]
-          raise DailyLimitError, "Daily API limit reached (#{usage[1]}/#{limits[1]}). Try again tomorrow."
+        if usage_header && limits_header
+          usage = usage_header.split(',').map(&:to_i)
+          limits = limits_header.split(',').map(&:to_i)
+
+          if usage[1] >= limits[1]
+            raise DailyLimitError, "Daily API limit reached (#{usage[1]}/#{limits[1]}). Try again tomorrow."
+          else
+            # 15-minute limit - wait and retry
+            raise RateLimitError.new(
+              "15-minute rate limit exceeded (#{usage[0]}/#{limits[0]})",
+              wait_seconds: 900
+            )
+          end
         else
-          # 15-minute limit - wait and retry
-          raise RateLimitError.new(
-            "15-minute rate limit exceeded (#{usage[0]}/#{limits[0]})",
-            wait_seconds: 900
-          )
+          # Headers missing - assume daily limit to be safe (don't retry forever)
+          raise DailyLimitError, "API rate limit reached (headers unavailable). Try again later."
         end
       end
 
