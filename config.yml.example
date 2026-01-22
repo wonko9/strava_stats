@@ -1,0 +1,19 @@
+# Strava API Configuration
+# Copy this file to config.yml and fill in your credentials
+# Get your API credentials at: https://www.strava.com/settings/api
+
+strava:
+  client_id: YOUR_CLIENT_ID
+  client_secret: YOUR_CLIENT_SECRET
+
+# OAuth callback settings (used during initial authorization)
+oauth:
+  callback_port: 8888
+
+# Database settings
+database:
+  path: data/strava_stats.db
+
+# Output settings
+output:
+  path: output/index.html

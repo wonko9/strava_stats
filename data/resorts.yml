@@ -1,0 +1,965 @@
+# Ski resorts for activity matching
+# Format: name, country, region, latitude, longitude, radius_km, resort_type (optional)
+
+# === COLORADO ===
+- name: Vail
+  country: USA
+  region: Colorado
+  latitude: 39.6403
+  longitude: -106.3742
+  radius_km: 8.0
+
+- name: Breckenridge
+  country: USA
+  region: Colorado
+  latitude: 39.4817
+  longitude: -106.0384
+  radius_km: 6.0
+
+- name: Aspen Snowmass
+  country: USA
+  region: Colorado
+  latitude: 39.2084
+  longitude: -106.9490
+  radius_km: 10.0
+
+- name: Aspen Mountain
+  country: USA
+  region: Colorado
+  latitude: 39.1875
+  longitude: -106.8187
+  radius_km: 4.0
+
+- name: Aspen Highlands
+  country: USA
+  region: Colorado
+  latitude: 39.1822
+  longitude: -106.8553
+  radius_km: 4.0
+
+- name: Buttermilk
+  country: USA
+  region: Colorado
+  latitude: 39.2069
+  longitude: -106.8686
+  radius_km: 3.0
+
+- name: Copper Mountain
+  country: USA
+  region: Colorado
+  latitude: 39.5022
+  longitude: -106.1497
+  radius_km: 5.0
+
+- name: Keystone
+  country: USA
+  region: Colorado
+  latitude: 39.5792
+  longitude: -105.9436
+  radius_km: 6.0
+
+- name: Winter Park
+  country: USA
+  region: Colorado
+  latitude: 39.8868
+  longitude: -105.7625
+  radius_km: 6.0
+
+- name: Steamboat Springs
+  country: USA
+  region: Colorado
+  latitude: 40.4572
+  longitude: -106.8045
+  radius_km: 6.0
+
+- name: Telluride
+  country: USA
+  region: Colorado
+  latitude: 37.9375
+  longitude: -107.8123
+  radius_km: 5.0
+
+- name: Crested Butte
+  country: USA
+  region: Colorado
+  latitude: 38.8986
+  longitude: -106.9653
+  radius_km: 5.0
+
+- name: Arapahoe Basin
+  country: USA
+  region: Colorado
+  latitude: 39.6425
+  longitude: -105.8719
+  radius_km: 3.0
+
+- name: Loveland
+  country: USA
+  region: Colorado
+  latitude: 39.6800
+  longitude: -105.8978
+  radius_km: 4.0
+
+- name: Eldora
+  country: USA
+  region: Colorado
+  latitude: 39.9372
+  longitude: -105.5828
+  radius_km: 3.0
+
+- name: Monarch Mountain
+  country: USA
+  region: Colorado
+  latitude: 38.5125
+  longitude: -106.3317
+  radius_km: 4.0
+
+- name: Purgatory
+  country: USA
+  region: Colorado
+  latitude: 37.6303
+  longitude: -107.8142
+  radius_km: 5.0
+
+- name: Wolf Creek
+  country: USA
+  region: Colorado
+  latitude: 37.4697
+  longitude: -106.7936
+  radius_km: 4.0
+
+# === UTAH ===
+- name: Park City
+  country: USA
+  region: Utah
+  latitude: 40.6514
+  longitude: -111.5080
+  radius_km: 8.0
+
+- name: Deer Valley
+  country: USA
+  region: Utah
+  latitude: 40.6375
+  longitude: -111.4783
+  radius_km: 5.0
+
+- name: Snowbird
+  country: USA
+  region: Utah
+  latitude: 40.5830
+  longitude: -111.6538
+  radius_km: 4.0
+
+- name: Alta
+  country: USA
+  region: Utah
+  latitude: 40.5884
+  longitude: -111.6386
+  radius_km: 4.0
+
+- name: Brighton
+  country: USA
+  region: Utah
+  latitude: 40.5980
+  longitude: -111.5833
+  radius_km: 4.0
+
+- name: Solitude
+  country: USA
+  region: Utah
+  latitude: 40.6197
+  longitude: -111.5919
+  radius_km: 4.0
+
+- name: Snowbasin
+  country: USA
+  region: Utah
+  latitude: 41.2161
+  longitude: -111.8569
+  radius_km: 5.0
+
+- name: Powder Mountain
+  country: USA
+  region: Utah
+  latitude: 41.3792
+  longitude: -111.7808
+  radius_km: 6.0
+
+- name: Brian Head
+  country: USA
+  region: Utah
+  latitude: 37.7022
+  longitude: -112.8497
+  radius_km: 4.0
+
+# === CALIFORNIA ===
+- name: Palisades Tahoe
+  country: USA
+  region: California
+  latitude: 39.1969
+  longitude: -120.2358
+  radius_km: 6.0
+
+- name: Heavenly
+  country: USA
+  region: California
+  latitude: 38.9353
+  longitude: -119.9400
+  radius_km: 6.0
+
+- name: Northstar
+  country: USA
+  region: California
+  latitude: 39.2746
+  longitude: -120.1210
+  radius_km: 5.0
+
+- name: Kirkwood
+  country: USA
+  region: California
+  latitude: 38.6850
+  longitude: -120.0653
+  radius_km: 5.0
+
+- name: Mammoth Mountain
+  country: USA
+  region: California
+  latitude: 37.6308
+  longitude: -119.0326
+  radius_km: 6.0
+
+- name: Big Bear
+  country: USA
+  region: California
+  latitude: 34.2364
+  longitude: -116.8906
+  radius_km: 5.0
+
+- name: Sugar Bowl
+  country: USA
+  region: California
+  latitude: 39.3047
+  longitude: -120.3342
+  radius_km: 4.0
+
+- name: Boreal
+  country: USA
+  region: California
+  latitude: 39.3322
+  longitude: -120.3483
+  radius_km: 3.0
+
+- name: Sierra at Tahoe
+  country: USA
+  region: California
+  latitude: 38.8019
+  longitude: -120.0803
+  radius_km: 4.0
+
+- name: June Mountain
+  country: USA
+  region: California
+  latitude: 37.7675
+  longitude: -119.0903
+  radius_km: 4.0
+
+- name: Mt. Bachelor
+  country: USA
+  region: Oregon
+  latitude: 43.9792
+  longitude: -121.6889
+  radius_km: 5.0
+
+# === PACIFIC NORTHWEST ===
+- name: Crystal Mountain
+  country: USA
+  region: Washington
+  latitude: 46.9282
+  longitude: -121.5045
+  radius_km: 5.0
+
+- name: Stevens Pass
+  country: USA
+  region: Washington
+  latitude: 47.7453
+  longitude: -121.0890
+  radius_km: 5.0
+
+- name: Mt. Baker
+  country: USA
+  region: Washington
+  latitude: 48.8572
+  longitude: -121.6650
+  radius_km: 5.0
+
+- name: Snoqualmie
+  country: USA
+  region: Washington
+  latitude: 47.4206
+  longitude: -121.4136
+  radius_km: 5.0
+
+- name: Mt. Hood Meadows
+  country: USA
+  region: Oregon
+  latitude: 45.3308
+  longitude: -121.6647
+  radius_km: 5.0
+
+- name: Timberline Lodge
+  country: USA
+  region: Oregon
+  latitude: 45.3311
+  longitude: -121.7111
+  radius_km: 4.0
+
+# === WYOMING / MONTANA / IDAHO ===
+- name: Jackson Hole
+  country: USA
+  region: Wyoming
+  latitude: 43.5875
+  longitude: -110.8278
+  radius_km: 6.0
+
+- name: Grand Targhee
+  country: USA
+  region: Wyoming
+  latitude: 43.7872
+  longitude: -110.9583
+  radius_km: 5.0
+
+- name: Big Sky
+  country: USA
+  region: Montana
+  latitude: 45.2856
+  longitude: -111.4019
+  radius_km: 8.0
+
+- name: Whitefish
+  country: USA
+  region: Montana
+  latitude: 48.4819
+  longitude: -114.3553
+  radius_km: 5.0
+
+- name: Sun Valley
+  country: USA
+  region: Idaho
+  latitude: 43.6975
+  longitude: -114.3514
+  radius_km: 6.0
+
+- name: Schweitzer
+  country: USA
+  region: Idaho
+  latitude: 48.3675
+  longitude: -116.6228
+  radius_km: 5.0
+
+- name: Taos
+  country: USA
+  region: New Mexico
+  latitude: 36.5958
+  longitude: -105.4542
+  radius_km: 5.0
+
+# === VERMONT ===
+- name: Killington
+  country: USA
+  region: Vermont
+  latitude: 43.6045
+  longitude: -72.8201
+  radius_km: 6.0
+
+- name: Stowe
+  country: USA
+  region: Vermont
+  latitude: 44.5303
+  longitude: -72.7814
+  radius_km: 5.0
+
+- name: Sugarbush
+  country: USA
+  region: Vermont
+  latitude: 44.1358
+  longitude: -72.9031
+  radius_km: 5.0
+
+- name: Jay Peak
+  country: USA
+  region: Vermont
+  latitude: 44.9275
+  longitude: -72.5053
+  radius_km: 5.0
+
+- name: Okemo
+  country: USA
+  region: Vermont
+  latitude: 43.4017
+  longitude: -72.7167
+  radius_km: 5.0
+
+- name: Stratton
+  country: USA
+  region: Vermont
+  latitude: 43.1139
+  longitude: -72.9081
+  radius_km: 5.0
+
+- name: Mount Snow
+  country: USA
+  region: Vermont
+  latitude: 42.9600
+  longitude: -72.9203
+  radius_km: 5.0
+
+# === NEW HAMPSHIRE / MAINE ===
+- name: Loon Mountain
+  country: USA
+  region: New Hampshire
+  latitude: 44.0364
+  longitude: -71.6214
+  radius_km: 4.0
+
+- name: Bretton Woods
+  country: USA
+  region: New Hampshire
+  latitude: 44.2572
+  longitude: -71.4392
+  radius_km: 5.0
+
+- name: Cannon Mountain
+  country: USA
+  region: New Hampshire
+  latitude: 44.1567
+  longitude: -71.6992
+  radius_km: 4.0
+
+- name: Wildcat Mountain
+  country: USA
+  region: New Hampshire
+  latitude: 44.2633
+  longitude: -71.2392
+  radius_km: 4.0
+
+- name: Sunday River
+  country: USA
+  region: Maine
+  latitude: 44.4731
+  longitude: -70.8567
+  radius_km: 5.0
+
+- name: Sugarloaf
+  country: USA
+  region: Maine
+  latitude: 45.0311
+  longitude: -70.3131
+  radius_km: 5.0
+
+# === NEW YORK ===
+- name: Whiteface
+  country: USA
+  region: New York
+  latitude: 44.3656
+  longitude: -73.9028
+  radius_km: 5.0
+
+- name: Gore Mountain
+  country: USA
+  region: New York
+  latitude: 43.6742
+  longitude: -74.0061
+  radius_km: 5.0
+
+- name: Hunter Mountain
+  country: USA
+  region: New York
+  latitude: 42.2006
+  longitude: -74.2256
+  radius_km: 4.0
+
+- name: Windham Mountain
+  country: USA
+  region: New York
+  latitude: 42.2958
+  longitude: -74.2581
+  radius_km: 4.0
+
+# === CANADA - BRITISH COLUMBIA ===
+- name: Whistler Blackcomb
+  country: Canada
+  region: British Columbia
+  latitude: 50.1163
+  longitude: -122.9574
+  radius_km: 10.0
+
+- name: Big White
+  country: Canada
+  region: British Columbia
+  latitude: 49.7236
+  longitude: -118.9328
+  radius_km: 6.0
+
+- name: Sun Peaks
+  country: Canada
+  region: British Columbia
+  latitude: 50.8831
+  longitude: -119.8869
+  radius_km: 6.0
+
+- name: Revelstoke
+  country: Canada
+  region: British Columbia
+  latitude: 50.9578
+  longitude: -118.1647
+  radius_km: 5.0
+
+- name: Kicking Horse
+  country: Canada
+  region: British Columbia
+  latitude: 51.2978
+  longitude: -117.0478
+  radius_km: 5.0
+
+- name: Fernie
+  country: Canada
+  region: British Columbia
+  latitude: 49.4636
+  longitude: -115.0869
+  radius_km: 5.0
+
+- name: Red Mountain
+  country: Canada
+  region: British Columbia
+  latitude: 49.1039
+  longitude: -117.8417
+  radius_km: 5.0
+
+# === CANADA - ALBERTA ===
+- name: Lake Louise
+  country: Canada
+  region: Alberta
+  latitude: 51.4408
+  longitude: -116.1528
+  radius_km: 6.0
+
+- name: Sunshine Village
+  country: Canada
+  region: Alberta
+  latitude: 51.1150
+  longitude: -115.7628
+  radius_km: 5.0
+
+- name: Mt. Norquay
+  country: Canada
+  region: Alberta
+  latitude: 51.2033
+  longitude: -115.6047
+  radius_km: 3.0
+
+- name: Marmot Basin
+  country: Canada
+  region: Alberta
+  latitude: 52.8061
+  longitude: -118.0836
+  radius_km: 5.0
+
+# === CANADA - QUEBEC ===
+- name: Mont Tremblant
+  country: Canada
+  region: Quebec
+  latitude: 46.2097
+  longitude: -74.5850
+  radius_km: 5.0
+
+- name: Le Massif
+  country: Canada
+  region: Quebec
+  latitude: 47.2767
+  longitude: -70.6267
+  radius_km: 4.0
+
+- name: Mont Sainte-Anne
+  country: Canada
+  region: Quebec
+  latitude: 47.0753
+  longitude: -70.9069
+  radius_km: 5.0
+
+# === EUROPE - FRANCE ===
+- name: Chamonix
+  country: France
+  region: Alps
+  latitude: 45.9237
+  longitude: 6.8694
+  radius_km: 8.0
+
+- name: Val d'Isere
+  country: France
+  region: Alps
+  latitude: 45.4508
+  longitude: 6.9783
+  radius_km: 6.0
+
+- name: Tignes
+  country: France
+  region: Alps
+  latitude: 45.4686
+  longitude: 6.9056
+  radius_km: 6.0
+
+- name: Les Trois Vallees
+  country: France
+  region: Alps
+  latitude: 45.3333
+  longitude: 6.5833
+  radius_km: 15.0
+
+- name: Courchevel
+  country: France
+  region: Alps
+  latitude: 45.4150
+  longitude: 6.6350
+  radius_km: 6.0
+
+- name: Meribel
+  country: France
+  region: Alps
+  latitude: 45.3967
+  longitude: 6.5656
+  radius_km: 5.0
+
+- name: Les Deux Alpes
+  country: France
+  region: Alps
+  latitude: 45.0167
+  longitude: 6.1167
+  radius_km: 5.0
+
+- name: Alpe d'Huez
+  country: France
+  region: Alps
+  latitude: 45.0911
+  longitude: 6.0681
+  radius_km: 6.0
+
+- name: La Plagne
+  country: France
+  region: Alps
+  latitude: 45.5069
+  longitude: 6.6772
+  radius_km: 8.0
+
+- name: Les Arcs
+  country: France
+  region: Alps
+  latitude: 45.5731
+  longitude: 6.8253
+  radius_km: 6.0
+
+# === EUROPE - SWITZERLAND ===
+- name: Zermatt
+  country: Switzerland
+  region: Alps
+  latitude: 46.0207
+  longitude: 7.7491
+  radius_km: 6.0
+
+- name: Verbier
+  country: Switzerland
+  region: Alps
+  latitude: 46.0961
+  longitude: 7.2286
+  radius_km: 6.0
+
+- name: St. Moritz
+  country: Switzerland
+  region: Alps
+  latitude: 46.4908
+  longitude: 9.8355
+  radius_km: 6.0
+
+- name: Davos
+  country: Switzerland
+  region: Alps
+  latitude: 46.8003
+  longitude: 9.8369
+  radius_km: 6.0
+
+- name: Grindelwald
+  country: Switzerland
+  region: Alps
+  latitude: 46.6244
+  longitude: 8.0414
+  radius_km: 5.0
+
+- name: Laax
+  country: Switzerland
+  region: Alps
+  latitude: 46.8097
+  longitude: 9.2581
+  radius_km: 5.0
+
+- name: Saas-Fee
+  country: Switzerland
+  region: Alps
+  latitude: 46.1081
+  longitude: 7.9281
+  radius_km: 4.0
+
+# === EUROPE - AUSTRIA ===
+- name: St. Anton
+  country: Austria
+  region: Alps
+  latitude: 47.1297
+  longitude: 10.2683
+  radius_km: 6.0
+
+- name: Kitzbuhel
+  country: Austria
+  region: Alps
+  latitude: 47.4492
+  longitude: 12.3919
+  radius_km: 6.0
+
+- name: Ischgl
+  country: Austria
+  region: Alps
+  latitude: 47.0167
+  longitude: 10.2833
+  radius_km: 5.0
+
+- name: Lech-Zurs
+  country: Austria
+  region: Alps
+  latitude: 47.2094
+  longitude: 10.1419
+  radius_km: 6.0
+
+- name: Solden
+  country: Austria
+  region: Alps
+  latitude: 46.9667
+  longitude: 10.8667
+  radius_km: 5.0
+
+- name: Mayrhofen
+  country: Austria
+  region: Alps
+  latitude: 47.1592
+  longitude: 11.8614
+  radius_km: 5.0
+
+# === EUROPE - ITALY ===
+- name: Cortina d'Ampezzo
+  country: Italy
+  region: Dolomites
+  latitude: 46.5369
+  longitude: 12.1358
+  radius_km: 6.0
+
+- name: Val Gardena
+  country: Italy
+  region: Dolomites
+  latitude: 46.5578
+  longitude: 11.7553
+  radius_km: 8.0
+
+- name: Alta Badia
+  country: Italy
+  region: Dolomites
+  latitude: 46.5506
+  longitude: 11.8639
+  radius_km: 6.0
+
+- name: Madonna di Campiglio
+  country: Italy
+  region: Dolomites
+  latitude: 46.2297
+  longitude: 10.8267
+  radius_km: 5.0
+
+- name: Courmayeur
+  country: Italy
+  region: Alps
+  latitude: 45.7967
+  longitude: 6.9706
+  radius_km: 5.0
+
+- name: Livigno
+  country: Italy
+  region: Alps
+  latitude: 46.5381
+  longitude: 10.1358
+  radius_km: 6.0
+
+# === JAPAN ===
+- name: Niseko
+  country: Japan
+  region: Hokkaido
+  latitude: 42.8048
+  longitude: 140.6874
+  radius_km: 8.0
+
+- name: Hakuba
+  country: Japan
+  region: Nagano
+  latitude: 36.6983
+  longitude: 137.8317
+  radius_km: 8.0
+
+- name: Nozawa Onsen
+  country: Japan
+  region: Nagano
+  latitude: 36.9219
+  longitude: 138.4403
+  radius_km: 4.0
+
+- name: Myoko Kogen
+  country: Japan
+  region: Niigata
+  latitude: 36.8894
+  longitude: 138.1756
+  radius_km: 6.0
+
+- name: Shiga Kogen
+  country: Japan
+  region: Nagano
+  latitude: 36.6833
+  longitude: 138.5167
+  radius_km: 8.0
+
+- name: Rusutsu
+  country: Japan
+  region: Hokkaido
+  latitude: 42.7456
+  longitude: 140.8978
+  radius_km: 5.0
+
+- name: Furano
+  country: Japan
+  region: Hokkaido
+  latitude: 43.3319
+  longitude: 142.3828
+  radius_km: 5.0
+
+# === BACKCOUNTRY REGIONS ===
+- name: Wasatch Range
+  country: USA
+  region: Utah
+  latitude: 40.6500
+  longitude: -111.5000
+  radius_km: 50.0
+  resort_type: backcountry
+
+- name: Tetons
+  country: USA
+  region: Wyoming
+  latitude: 43.7500
+  longitude: -110.8000
+  radius_km: 40.0
+  resort_type: backcountry
+
+- name: Sierra Nevada
+  country: USA
+  region: California
+  latitude: 37.5000
+  longitude: -119.0000
+  radius_km: 100.0
+  resort_type: backcountry
+
+- name: San Juan Mountains
+  country: USA
+  region: Colorado
+  latitude: 37.8000
+  longitude: -107.7000
+  radius_km: 60.0
+  resort_type: backcountry
+
+- name: Front Range
+  country: USA
+  region: Colorado
+  latitude: 39.8000
+  longitude: -105.5000
+  radius_km: 50.0
+  resort_type: backcountry
+
+- name: Tenmile Range
+  country: USA
+  region: Colorado
+  latitude: 39.5000
+  longitude: -106.1000
+  radius_km: 30.0
+  resort_type: backcountry
+
+- name: Gore Range
+  country: USA
+  region: Colorado
+  latitude: 39.7000
+  longitude: -106.3000
+  radius_km: 30.0
+  resort_type: backcountry
+
+- name: Elk Mountains
+  country: USA
+  region: Colorado
+  latitude: 39.1000
+  longitude: -107.0000
+  radius_km: 40.0
+  resort_type: backcountry
+
+- name: Chugach Mountains
+  country: USA
+  region: Alaska
+  latitude: 61.2000
+  longitude: -145.5000
+  radius_km: 100.0
+  resort_type: backcountry
+
+- name: North Cascades
+  country: USA
+  region: Washington
+  latitude: 48.5000
+  longitude: -121.0000
+  radius_km: 60.0
+  resort_type: backcountry
+
+- name: Mt. Rainier
+  country: USA
+  region: Washington
+  latitude: 46.8523
+  longitude: -121.7603
+  radius_km: 30.0
+  resort_type: backcountry
+
+- name: Coast Mountains
+  country: Canada
+  region: British Columbia
+  latitude: 50.5000
+  longitude: -123.5000
+  radius_km: 100.0
+  resort_type: backcountry
+
+- name: Rogers Pass
+  country: Canada
+  region: British Columbia
+  latitude: 51.3000
+  longitude: -117.5000
+  radius_km: 30.0
+  resort_type: backcountry
+
+- name: Mont Blanc Massif
+  country: France
+  region: Alps
+  latitude: 45.8326
+  longitude: 6.8652
+  radius_km: 30.0
+  resort_type: backcountry
+
+- name: Lyngen Alps
+  country: Norway
+  region: Troms
+  latitude: 69.6000
+  longitude: 20.2000
+  radius_km: 40.0
+  resort_type: backcountry

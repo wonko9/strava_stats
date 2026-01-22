@@ -1,0 +1,273 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'thor'
+require 'yaml'
+require 'fileutils'
+
+# Add lib to load path
+$LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
+
+require 'database'
+require 'strava_api'
+require 'sync'
+require 'location_matcher'
+require 'stats_calculator'
+require 'html_generator'
+
+module StravaStats
+  class CLI < Thor
+    class_option :config, type: :string, default: 'config.yml', desc: 'Path to config file'
+
+    desc 'auth', 'Authorize with Strava (required on first run)'
+    def auth
+      setup_components
+      @api.authorize!
+      puts "\nYou can now run 'strava_stats sync' to download your activities."
+    end
+
+    desc 'sync', 'Sync activities from Strava'
+    option :full, type: :boolean, default: false, desc: 'Force full sync (ignore last sync time)'
+    def sync
+      setup_components
+      ensure_authenticated!
+
+      @syncer.sync_activities(full: options[:full])
+
+      # Match activities to resorts and peaks
+      @location_matcher.seed_resorts_if_empty
+      @location_matcher.seed_peaks_if_empty
+      @location_matcher.match_all_activities
+    end
+
+    desc 'fetch_details', 'Fetch detailed data (calories, etc.) for activities missing it'
+    def fetch_details
+      setup_components
+      ensure_authenticated!
+
+      @syncer.fetch_missing_details
+    end
+
+    desc 'refresh ACTIVITY_IDS', 'Refresh specific activities from Strava (re-fetch latest data)'
+    long_desc <<-LONGDESC
+      Re-fetches activity data from Strava for the specified activity IDs.
+      Use this when you've edited activities on Strava and want to update your local database.
+
+      Examples:
+        strava_stats refresh 4915043957
+        strava_stats refresh 4915043957 4915043958 4915043959
+
+      You can find activity IDs in the Strava URL: https://www.strava.com/activities/4915043957
+    LONGDESC
+    def refresh(*activity_ids)
+      if activity_ids.empty?
+        puts "Usage: strava_stats refresh ACTIVITY_ID [ACTIVITY_ID ...]"
+        puts "\nExample: strava_stats refresh 4915043957"
+        puts "\nYou can find activity IDs in Strava URLs:"
+        puts "  https://www.strava.com/activities/4915043957"
+        exit 1
+      end
+
+      setup_components
+      ensure_authenticated!
+
+      ids = activity_ids.map(&:to_i)
+      @syncer.refresh_activities(ids)
+
+      # Re-match resorts and peaks for refreshed activities
+      @location_matcher.match_all_activities
+    end
+
+    desc 'generate', 'Generate HTML stats page'
+    def generate
+      setup_components
+
+      count = @database.get_activity_count
+      if count.zero?
+        puts 'No activities in database. Run "strava_stats sync" first.'
+        exit 1
+      end
+
+      puts "\n=== Generating Stats ==="
+      puts "Processing #{count} activities..."
+
+      # Ensure resorts and peaks are matched
+      @location_matcher.seed_resorts_if_empty
+      @location_matcher.seed_peaks_if_empty
+      @location_matcher.match_all_activities
+
+      # Calculate stats
+      stats = @stats_calculator.calculate_all_stats
+
+      # Get athlete name from stored token data
+      tokens = @database.get_tokens
+      athlete_name = tokens&.dig(:athlete, 'firstname')
+
+      # Generate HTML
+      @html_generator.generate(stats: stats, athlete_name: athlete_name)
+
+      puts "\nOpen in browser: file://#{File.expand_path(@config.dig('output', 'path') || 'output/index.html')}"
+    end
+
+    desc 'status', 'Show sync status'
+    def status
+      setup_components
+
+      status = @syncer.sync_status
+      puts "\n=== Sync Status ==="
+      puts "Last sync: #{status[:last_sync] ? status[:last_sync].strftime('%Y-%m-%d %H:%M:%S') : 'Never'}"
+      puts "Total activities: #{status[:total_activities]}"
+      puts "Activities missing details: #{status[:without_details]}" if status[:without_details].to_i > 0
+      puts "Newest activity: #{status[:newest_activity] ? status[:newest_activity].strftime('%Y-%m-%d') : 'N/A'}"
+
+      tokens = @database.get_tokens
+      if tokens
+        puts "\nAuthenticated as: #{tokens.dig(:athlete, 'firstname')} #{tokens.dig(:athlete, 'lastname')}"
+      else
+        puts "\nNot authenticated. Run 'strava_stats auth' first."
+      end
+    end
+
+    desc 'resorts', 'List all resorts in database'
+    option :add, type: :string, desc: 'Add a resort (format: "Name,Country,Region,Lat,Lng,Radius")'
+    def resorts
+      setup_components
+
+      if options[:add]
+        add_resort(options[:add])
+        return
+      end
+
+      resorts = @database.get_all_resorts
+      puts "\n=== Resorts Database (#{resorts.count} resorts) ==="
+
+      by_country = resorts.group_by { |r| r['country'] }
+      by_country.sort.each do |country, country_resorts|
+        puts "\n#{country}:"
+        country_resorts.sort_by { |r| r['name'] }.each do |r|
+          type = r['resort_type'] == 'backcountry' ? ' [backcountry]' : ''
+          puts "  #{r['name']} (#{r['region']})#{type}"
+        end
+      end
+    end
+
+    desc 'run', 'Sync and generate stats (default command)'
+    def run_all
+      setup_components
+      ensure_authenticated!
+
+      # Sync will auto-generate HTML at completion and during rate limit pauses
+      invoke :sync
+    end
+
+    default_task :run_all
+
+    private
+
+    def setup_components
+      load_config
+
+      db_path = @config.dig('database', 'path') || 'data/strava_stats.db'
+      FileUtils.mkdir_p(File.dirname(db_path))
+
+      @database = Database.new(db_path)
+
+      @api = StravaAPI.new(
+        client_id: @config.dig('strava', 'client_id'),
+        client_secret: @config.dig('strava', 'client_secret'),
+        database: @database,
+        callback_port: @config.dig('oauth', 'callback_port') || 8888
+      )
+
+      @location_matcher = LocationMatcher.new(database: @database)
+      @stats_calculator = StatsCalculator.new(database: @database)
+
+      output_path = @config.dig('output', 'path') || 'output/index.html'
+      @html_generator = HTMLGenerator.new(output_path: output_path)
+
+      # Create syncer with progress callback to regenerate HTML
+      @syncer = Sync.new(
+        api: @api,
+        database: @database,
+        on_progress: -> { generate_html_quietly }
+      )
+    end
+
+    def generate_html_quietly
+      return if @database.get_activity_count.zero?
+
+      # Match resorts and peaks before generating
+      @location_matcher.seed_resorts_if_empty
+      @location_matcher.seed_peaks_if_empty
+      @location_matcher.match_all_activities
+
+      # Calculate stats and generate
+      stats = @stats_calculator.calculate_all_stats
+      tokens = @database.get_tokens
+      athlete_name = tokens&.dig(:athlete, 'firstname')
+      @html_generator.generate(stats: stats, athlete_name: athlete_name)
+    rescue StandardError => e
+      puts "   Warning: Failed to generate HTML: #{e.message}"
+    end
+
+    def load_config
+      config_path = options[:config]
+
+      unless File.exist?(config_path)
+        puts "Config file not found: #{config_path}"
+        puts "\nCreate a config.yml file with your Strava API credentials:"
+        puts "  cp config.yml.example config.yml"
+        puts "  # Edit config.yml with your credentials from https://www.strava.com/settings/api"
+        exit 1
+      end
+
+      @config = YAML.load_file(config_path)
+
+      missing = []
+      missing << 'strava.client_id' unless @config.dig('strava', 'client_id')
+      missing << 'strava.client_secret' unless @config.dig('strava', 'client_secret')
+
+      return if missing.empty?
+
+      puts "Missing required config values: #{missing.join(', ')}"
+      puts "Edit #{config_path} and add your Strava API credentials."
+      exit 1
+    end
+
+    def ensure_authenticated!
+      return if @api.authenticated?
+
+      puts 'Not authenticated with Strava.'
+      puts "Run 'strava_stats auth' first to authorize."
+      exit 1
+    end
+
+    def add_resort(resort_string)
+      parts = resort_string.split(',').map(&:strip)
+
+      if parts.length < 5
+        puts 'Invalid format. Use: "Name,Country,Region,Latitude,Longitude[,RadiusKm][,Type]"'
+        puts 'Example: "My Resort,USA,Colorado,39.5,-106.0,5.0,resort"'
+        exit 1
+      end
+
+      resort = {
+        name: parts[0],
+        country: parts[1],
+        region: parts[2],
+        latitude: parts[3].to_f,
+        longitude: parts[4].to_f,
+        radius_km: parts[5]&.to_f || 5.0,
+        resort_type: parts[6] || 'resort'
+      }
+
+      @database.insert_resort(resort)
+      puts "✓ Added resort: #{resort[:name]}"
+
+      # Re-match activities
+      @location_matcher.match_all_activities
+    end
+  end
+end
+
+StravaStats::CLI.start(ARGV)

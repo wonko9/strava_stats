@@ -1,0 +1,23 @@
+# Credentials and config
+config.yml
+
+# Database files (contains personal activity data)
+*.db
+
+# Generated output
+output/
+
+# Personal resort list
+data/my_resorts.yml
+
+# macOS
+.DS_Store
+
+# Claude Code
+.claude/
+
+# Ruby
+*.gem
+*.rbc
+.bundle/
+vendor/bundle/
