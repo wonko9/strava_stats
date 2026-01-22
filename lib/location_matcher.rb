@@ -55,35 +55,38 @@ module StravaStats
     def match_all_activities
       logger.info "\n=== Matching Activities to Resorts ==="
 
-      # Clear existing matches
-      @database.clear_activity_resorts
-
       activities = @database.get_all_activities
       resorts = @database.get_all_resorts
 
       matched = 0
       winter_count = 0
 
-      activities.each do |activity|
-        next unless WINTER_SPORTS.include?(activity['sport_type'])
+      # Wrap clear/rebuild in transaction for atomicity
+      @database.transaction do
+        # Clear existing matches
+        @database.clear_activity_resorts
 
-        winter_count += 1
-        lat = activity['start_lat']
-        lng = activity['start_lng']
+        activities.each do |activity|
+          next unless WINTER_SPORTS.include?(activity['sport_type'])
 
-        next unless lat && lng
+          winter_count += 1
+          lat = activity['start_lat']
+          lng = activity['start_lng']
 
-        # Find nearest resort within radius
-        match = find_nearest_resort(lat, lng, resorts)
+          next unless lat && lng
 
-        if match
-          @database.link_activity_to_resort(
-            activity_id: activity['id'],
-            resort_id: match[:resort]['id'],
-            distance_km: match[:distance],
-            matched_by: 'gps'
-          )
-          matched += 1
+          # Find nearest resort within radius
+          match = find_nearest_resort(lat, lng, resorts)
+
+          if match
+            @database.link_activity_to_resort(
+              activity_id: activity['id'],
+              resort_id: match[:resort]['id'],
+              distance_km: match[:distance],
+              matched_by: 'gps'
+            )
+            matched += 1
+          end
         end
       end
 
@@ -96,36 +99,39 @@ module StravaStats
     end
 
     def match_backcountry_to_peaks
-      # Clear existing peak matches
-      @database.clear_activity_peaks
-
       activities = @database.get_all_activities
       peaks = @database.get_all_peaks
 
-      return if peaks.empty?
+      return 0 if peaks.empty?
 
       matched = 0
       backcountry_count = 0
 
-      activities.each do |activity|
-        next unless BACKCOUNTRY_SPORTS.include?(activity['sport_type'])
+      # Wrap clear/rebuild in transaction for atomicity
+      @database.transaction do
+        # Clear existing peak matches
+        @database.clear_activity_peaks
 
-        backcountry_count += 1
-        lat = activity['start_lat']
-        lng = activity['start_lng']
+        activities.each do |activity|
+          next unless BACKCOUNTRY_SPORTS.include?(activity['sport_type'])
 
-        next unless lat && lng
+          backcountry_count += 1
+          lat = activity['start_lat']
+          lng = activity['start_lng']
 
-        # Find nearest peak within radius
-        match = find_nearest_peak(lat, lng, peaks)
+          next unless lat && lng
 
-        if match
-          @database.link_activity_to_peak(
-            activity_id: activity['id'],
-            peak_id: match[:peak]['id'],
-            distance_km: match[:distance]
-          )
-          matched += 1
+          # Find nearest peak within radius
+          match = find_nearest_peak(lat, lng, peaks)
+
+          if match
+            @database.link_activity_to_peak(
+              activity_id: activity['id'],
+              peak_id: match[:peak]['id'],
+              distance_km: match[:distance]
+            )
+            matched += 1
+          end
         end
       end
 

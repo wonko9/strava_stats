@@ -543,5 +543,44 @@ module StravaStats
     def close
       @db.close
     end
+
+    # Transaction support for atomic multi-step operations
+    def transaction
+      @db.transaction { yield }
+    end
+
+    # Batch query methods to avoid N+1 queries
+
+    # Get all resort matches for multiple activities at once
+    # Returns a hash: { activity_id => resort_row }
+    def get_resorts_for_activities(activity_ids)
+      return {} if activity_ids.empty?
+
+      placeholders = activity_ids.map { '?' }.join(', ')
+      rows = @db.execute(<<~SQL, activity_ids)
+        SELECT ar.activity_id, r.*, ar.distance_km, ar.matched_by
+        FROM activity_resorts ar
+        JOIN resorts r ON ar.resort_id = r.id
+        WHERE ar.activity_id IN (#{placeholders})
+      SQL
+
+      rows.each_with_object({}) { |row, hash| hash[row['activity_id']] = row }
+    end
+
+    # Get all peak matches for multiple activities at once
+    # Returns a hash: { activity_id => peak_row }
+    def get_peaks_for_activities(activity_ids)
+      return {} if activity_ids.empty?
+
+      placeholders = activity_ids.map { '?' }.join(', ')
+      rows = @db.execute(<<~SQL, activity_ids)
+        SELECT ap.activity_id, p.*, ap.distance_km
+        FROM activity_peaks ap
+        JOIN peaks p ON ap.peak_id = p.id
+        WHERE ap.activity_id IN (#{placeholders})
+      SQL
+
+      rows.each_with_object({}) { |row, hash| hash[row['activity_id']] = row }
+    end
   end
 end

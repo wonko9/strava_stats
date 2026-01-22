@@ -6,8 +6,8 @@ RSpec.describe StravaStats::StatsCalculator do
   let(:database) do
     instance_double('StravaStats::Database',
                     get_all_activities: [],
-                    get_resort_for_activity: nil,
-                    get_peak_for_activity: nil)
+                    get_resorts_for_activities: {},
+                    get_peaks_for_activities: {})
   end
   let(:calculator) { described_class.new(database: database) }
 
@@ -307,10 +307,17 @@ RSpec.describe StravaStats::StatsCalculator do
       let(:resort) { TestFixtures.mock_resort(name: 'Vail') }
 
       before do
-        allow(database).to receive(:get_resort_for_activity).and_return(resort)
+        # Prefetch resorts in calculate_all_stats, then test resorts_by_season
+        allow(database).to receive(:get_all_activities).and_return(activities)
+        allow(database).to receive(:get_resorts_for_activities).and_return({
+                                                                             1001 => resort,
+                                                                             1002 => resort
+                                                                           })
+        allow(database).to receive(:get_peaks_for_activities).and_return({})
       end
 
       it 'groups activities by resort within season' do
+        calculator.calculate_all_stats # Prefetch data
         result = calculator.calculate_resorts_by_season(activities)
 
         expect(result).to have_key('2023-24')
@@ -319,12 +326,14 @@ RSpec.describe StravaStats::StatsCalculator do
       end
 
       it 'includes resort info' do
+        calculator.calculate_all_stats
         result = calculator.calculate_resorts_by_season(activities)
 
         expect(result['2023-24']['Vail'][:resort]).to eq(resort)
       end
 
       it 'calculates stats for each resort' do
+        calculator.calculate_all_stats
         result = calculator.calculate_resorts_by_season(activities)
 
         expect(result['2023-24']['Vail'][:stats][:total_activities]).to eq(2)
@@ -338,10 +347,13 @@ RSpec.describe StravaStats::StatsCalculator do
       let(:backcountry_resort) { TestFixtures.mock_resort(name: 'BC Zone', resort_type: 'backcountry') }
 
       before do
-        allow(database).to receive(:get_resort_for_activity).and_return(backcountry_resort)
+        allow(database).to receive(:get_all_activities).and_return(activities)
+        allow(database).to receive(:get_resorts_for_activities).and_return({ 1001 => backcountry_resort })
+        allow(database).to receive(:get_peaks_for_activities).and_return({})
       end
 
       it 'excludes backcountry resorts' do
+        calculator.calculate_all_stats
         result = calculator.calculate_resorts_by_season(activities)
 
         expect(result).to eq({})
@@ -354,10 +366,13 @@ RSpec.describe StravaStats::StatsCalculator do
       end
 
       before do
-        allow(database).to receive(:get_resort_for_activity).and_return(nil)
+        allow(database).to receive(:get_all_activities).and_return(activities)
+        allow(database).to receive(:get_resorts_for_activities).and_return({})
+        allow(database).to receive(:get_peaks_for_activities).and_return({})
       end
 
       it 'skips activities without resort match' do
+        calculator.calculate_all_stats
         result = calculator.calculate_resorts_by_season(activities)
 
         expect(result).to eq({})
@@ -390,10 +405,16 @@ RSpec.describe StravaStats::StatsCalculator do
         let(:bc_resort) { TestFixtures.mock_resort(name: 'Berthoud Pass', resort_type: 'backcountry') }
 
         before do
-          allow(database).to receive(:get_resort_for_activity).and_return(bc_resort)
+          allow(database).to receive(:get_all_activities).and_return(activities)
+          allow(database).to receive(:get_resorts_for_activities).and_return({
+                                                                               1001 => bc_resort,
+                                                                               1002 => bc_resort
+                                                                             })
+          allow(database).to receive(:get_peaks_for_activities).and_return({})
         end
 
         it 'uses resort name for region' do
+          calculator.calculate_all_stats
           result = calculator.calculate_backcountry_by_season(activities)
 
           expect(result['2023-24']).to have_key('Berthoud Pass')
@@ -404,10 +425,16 @@ RSpec.describe StravaStats::StatsCalculator do
         let(:resort) { TestFixtures.mock_resort(name: 'Vail', resort_type: 'resort') }
 
         before do
-          allow(database).to receive(:get_resort_for_activity).and_return(resort)
+          allow(database).to receive(:get_all_activities).and_return(activities)
+          allow(database).to receive(:get_resorts_for_activities).and_return({
+                                                                               1001 => resort,
+                                                                               1002 => resort
+                                                                             })
+          allow(database).to receive(:get_peaks_for_activities).and_return({})
         end
 
         it 'appends "area" to resort name' do
+          calculator.calculate_all_stats
           result = calculator.calculate_backcountry_by_season(activities)
 
           expect(result['2023-24']).to have_key('Vail area')
@@ -416,10 +443,13 @@ RSpec.describe StravaStats::StatsCalculator do
 
       context 'with no resort match' do
         before do
-          allow(database).to receive(:get_resort_for_activity).and_return(nil)
+          allow(database).to receive(:get_all_activities).and_return(activities)
+          allow(database).to receive(:get_resorts_for_activities).and_return({})
+          allow(database).to receive(:get_peaks_for_activities).and_return({})
         end
 
         it 'falls back to location_state' do
+          calculator.calculate_all_stats
           result = calculator.calculate_backcountry_by_season(activities)
 
           expect(result['2023-24']).to have_key('Colorado')
@@ -427,6 +457,7 @@ RSpec.describe StravaStats::StatsCalculator do
 
         it 'falls back to location_country when state missing' do
           activities.each { |a| a.delete('location_state') }
+          calculator.calculate_all_stats
           result = calculator.calculate_backcountry_by_season(activities)
 
           expect(result['2023-24']).to have_key('USA')
@@ -437,6 +468,7 @@ RSpec.describe StravaStats::StatsCalculator do
             a.delete('location_state')
             a.delete('location_country')
           end
+          calculator.calculate_all_stats
           result = calculator.calculate_backcountry_by_season(activities)
 
           expect(result['2023-24']).to have_key('Unknown')
@@ -456,10 +488,16 @@ RSpec.describe StravaStats::StatsCalculator do
       let(:peak) { TestFixtures.mock_peak(name: 'Mt. Elbert') }
 
       before do
-        allow(database).to receive(:get_peak_for_activity).and_return(peak)
+        allow(database).to receive(:get_all_activities).and_return(activities)
+        allow(database).to receive(:get_resorts_for_activities).and_return({})
+        allow(database).to receive(:get_peaks_for_activities).and_return({
+                                                                           1001 => peak,
+                                                                           1002 => peak
+                                                                         })
       end
 
       it 'groups activities by peak' do
+        calculator.calculate_all_stats
         result = calculator.calculate_peaks_by_season(activities)
 
         expect(result['2023-24']).to have_key('Mt. Elbert')
@@ -467,6 +505,7 @@ RSpec.describe StravaStats::StatsCalculator do
       end
 
       it 'includes peak info' do
+        calculator.calculate_all_stats
         result = calculator.calculate_peaks_by_season(activities)
 
         expect(result['2023-24']['Mt. Elbert'][:peak]).to eq(peak)
@@ -479,10 +518,13 @@ RSpec.describe StravaStats::StatsCalculator do
       end
 
       before do
-        allow(database).to receive(:get_peak_for_activity).and_return(nil)
+        allow(database).to receive(:get_all_activities).and_return(activities)
+        allow(database).to receive(:get_resorts_for_activities).and_return({})
+        allow(database).to receive(:get_peaks_for_activities).and_return({})
       end
 
       it 'skips activities without peak match' do
+        calculator.calculate_all_stats
         result = calculator.calculate_peaks_by_season(activities)
 
         expect(result).to eq({})
@@ -508,6 +550,8 @@ RSpec.describe StravaStats::StatsCalculator do
 
     before do
       allow(database).to receive(:get_all_activities).and_return(activities)
+      allow(database).to receive(:get_resorts_for_activities).and_return({})
+      allow(database).to receive(:get_peaks_for_activities).and_return({})
       allow(Time).to receive(:now).and_return(Time.new(2024, 6, 15, 12, 0, 0))
     end
 
@@ -554,6 +598,8 @@ RSpec.describe StravaStats::StatsCalculator do
 
     before do
       allow(database).to receive(:get_all_activities).and_return(activities)
+      allow(database).to receive(:get_resorts_for_activities).and_return({})
+      allow(database).to receive(:get_peaks_for_activities).and_return({})
       allow(Time).to receive(:now).and_return(Time.new(2025, 1, 15, 12, 0, 0))
     end
 
@@ -597,6 +643,8 @@ RSpec.describe StravaStats::StatsCalculator do
 
     before do
       allow(database).to receive(:get_all_activities).and_return(activities)
+      allow(database).to receive(:get_resorts_for_activities).and_return({})
+      allow(database).to receive(:get_peaks_for_activities).and_return({})
       allow(Time).to receive(:now).and_return(Time.new(2024, 6, 15, 12, 0, 0))
     end
 

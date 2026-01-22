@@ -22,12 +22,19 @@ module StravaStats
 
     def initialize(database:)
       @database = database
+      @resorts_by_activity = {}
+      @peaks_by_activity = {}
     end
 
     def calculate_all_stats
       activities = @database.get_all_activities
       by_sport_and_year = calculate_by_sport_and_year(activities)
       winter_by_season = calculate_winter_by_season(activities)
+
+      # Prefetch resort and peak matches for all activities to avoid N+1 queries
+      activity_ids = activities.map { |a| a['id'] }
+      @resorts_by_activity = @database.get_resorts_for_activities(activity_ids)
+      @peaks_by_activity = @database.get_peaks_for_activities(activity_ids)
 
       {
         summary: calculate_summary(activities),
@@ -110,7 +117,8 @@ module StravaStats
       activities.each do |activity|
         next unless %w[Snowboard AlpineSki].include?(activity['sport_type'])
 
-        resort = @database.get_resort_for_activity(activity['id'])
+        # Use prefetched data instead of individual query
+        resort = @resorts_by_activity[activity['id']]
         next unless resort && resort['resort_type'] != 'backcountry'
 
         season = extract_winter_season(activity['start_date_local'])
@@ -140,7 +148,8 @@ module StravaStats
       activities.each do |activity|
         next unless activity['sport_type'] == 'BackcountrySki'
 
-        resort = @database.get_resort_for_activity(activity['id'])
+        # Use prefetched data instead of individual query
+        resort = @resorts_by_activity[activity['id']]
         region_name = if resort && resort['resort_type'] == 'backcountry'
                         resort['name']
                       elsif resort
@@ -175,7 +184,8 @@ module StravaStats
       activities.each do |activity|
         next unless activity['sport_type'] == 'BackcountrySki'
 
-        peak = @database.get_peak_for_activity(activity['id'])
+        # Use prefetched data instead of individual query
+        peak = @peaks_by_activity[activity['id']]
         next unless peak
 
         season = extract_winter_season(activity['start_date_local'])
